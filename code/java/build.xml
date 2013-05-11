@@ -1,0 +1,44 @@
+<?xml version="1.0" ?>
+
+<project name="Main" default="build" basedir=".">
+
+  <condition property="main.class" value="${ant.project.name}">
+    <not>
+      <isset property="main.class"/>
+    </not>
+  </condition>
+  <!-- Build java -->
+  <target name="build" depends="clean">
+    <mkdir dir="build"/>
+    <javac
+       srcdir="src"
+       includes="**/*.java"
+       debug="on"
+       optimize="off"
+       destdir="build"
+       compiler="extJavac"
+       deprecation="yes"
+       source="1.5"
+       target="1.5"
+       >
+    </javac>
+  </target>
+
+  <target name="jar" depends="build">
+    <jar destfile="${ant.project.name}.jar" basedir="build">
+      <manifest>
+        <attribute name="Main-Class" value="${main.class}"/>
+      </manifest>
+    </jar>
+  </target>
+
+  <target name="run" depends="jar">
+    <java fork="true" jar="${ant.project.name}.jar"/>
+  </target>
+
+  <target name="clean" >
+    <delete dir="build"/>
+    <delete file="${ant.project.name}.jar"/>
+  </target>
+
+</project>
