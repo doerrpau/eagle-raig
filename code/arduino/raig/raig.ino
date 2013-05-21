@@ -122,6 +122,8 @@ void setup()
   for (byte i = 0; i < NUM_LSM330; i++) {
     pinMode(cs_g_pin[i], OUTPUT);
     pinMode(cs_a_pin[i], OUTPUT);
+    digitalWrite(cs_g_pin[i], HIGH);
+    digitalWrite(cs_a_pin[i], HIGH);
   }
 
   // LSM330 configuration
@@ -191,7 +193,7 @@ void loop()
   
   // Timestamp + checksum:w
   
-  addTimestampeMsg();
+  addTimestampMsg();
   addChecksumMsg();
   
   // Send data to host
