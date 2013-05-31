@@ -187,9 +187,11 @@ public class RAIGDriver implements SerialPortEventListener {
                         // TODO: Implement checksum
                         // Add to queues and exit
                         if (!newLsms.samples.isEmpty()) {
+                            newLsms.timestamp = time;
                             lsm_data.add(newLsms);
                         }
                         if (!newMpus.samples.isEmpty()) {
+                            newMpus.timestamp = time;
                             mpu_data.add(newMpus);
                         }
                         return;

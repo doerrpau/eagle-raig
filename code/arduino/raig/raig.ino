@@ -106,6 +106,8 @@ byte data_buffer[256];
 byte data_size;
 byte checksum;
 
+unsigned long lastTime = 0;
+
 void setup() 
 {
   delay(1000);
@@ -169,7 +171,8 @@ void setup()
 } // setup()
 
 void loop() 
-{ 
+{
+  lastTime = millis(); 
   data_size = 0;
   
   // Poll all sensors, then send data blob
@@ -198,6 +201,10 @@ void loop()
   
   // Send data to host
   Serial.write(data_buffer, data_size);
+  
+  while (millis() - lastTime < 22) {
+    ;
+  }
   
 } // loop()
 
