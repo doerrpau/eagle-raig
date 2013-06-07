@@ -1,6 +1,7 @@
 import java.io.*;
 import java.util.*;
 import java.lang.*;
+import java.nio.*;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
@@ -52,7 +53,8 @@ public class RAIGDriver implements SerialPortEventListener {
 	* converting the bytes into characters 
 	* making the displayed results codepage independent
 	*/
-	private BufferedReader input;
+	//private BufferedReader input;
+	private InputStreamReader input;
 	/** Milliseconds to block while waiting for port open */
 	private static final int TIME_OUT = 2000;
 	/** Default bits per second for COM port. */
@@ -89,7 +91,8 @@ public class RAIGDriver implements SerialPortEventListener {
 					SerialPort.PARITY_NONE);
 
 			// open the streams
-			input = new BufferedReader(new InputStreamReader(serialPort.getInputStream()));
+			//input = new BufferedReader(new InputStreamReader(serialPort.getInputStream()));
+			input = new InputStreamReader(serialPort.getInputStream());
 
 			// add event listeners
 			serialPort.addEventListener(this);
@@ -139,8 +142,13 @@ public class RAIGDriver implements SerialPortEventListener {
                         // Get sensor ID
                         newLsm.id = (byte)input.read();
                         // Get rate data
-                        newLsm.rateX = (short)(newLsm.rateX | (input.read() & 0xFF));
-                        newLsm.rateX = (short)(newLsm.rateX | ((input.read() << 8) & 0xFF00));
+                        ByteBuffer bb = ByteBuffer.allocate(2);
+                        bb.order(ByteOrder.BIG_ENDIAN);
+                        bb.put((byte)input.read());
+                        bb.put((byte)input.read());
+                        newLsm.rateX = bb.getShort(0);
+                        //newLsm.rateX = (short)(newLsm.rateX | (input.read() & 0xFF));
+                        //newLsm.rateX = (short)(newLsm.rateX | ((input.read() & 0xFF) << 8));
                         newLsm.rateY = (short)(newLsm.rateY | (input.read() & 0xFF));
                         newLsm.rateY = (short)(newLsm.rateY | ((input.read() << 8) & 0xFF00));
                         newLsm.rateZ = (short)(newLsm.rateZ | (input.read() & 0xFF));
@@ -184,6 +192,7 @@ public class RAIGDriver implements SerialPortEventListener {
                         time = ((time << 8) | (input.read() & 0xFF));
                         time = ((time << 8) | (input.read() & 0xFF));
                         time = ((time << 8) | (input.read() & 0xFF));
+                        input.read();
                         // TODO: Implement checksum
                         // Add to queues and exit
                         if (!newLsms.samples.isEmpty()) {

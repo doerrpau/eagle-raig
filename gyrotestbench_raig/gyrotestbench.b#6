@@ -3397,8 +3397,8 @@ This Sunstone Circuits 2 Layer .DRU has been set to cover our minimum requiremen
 <element name="R13" library="SparkFun-Resistors" package="0603-RES" value="100k" x="7.62" y="62.23" rot="R180"/>
 <element name="R14" library="SparkFun-Resistors" package="0603-RES" value="100k" x="85.09" y="62.23"/>
 <element name="R15" library="SparkFun-Resistors" package="0603-RES" value="100k" x="78.74" y="62.23" rot="R180"/>
-<element name="R16" library="SparkFun-Resistors" package="0603-RES" value="100k" x="53.34" y="64.77"/>
-<element name="R17" library="SparkFun-Resistors" package="0603-RES" value="100k" x="2.54" y="-20.32"/>
+<element name="R16" library="SparkFun-Resistors" package="0603-RES" value="100k" x="52.07" y="62.23"/>
+<element name="R17" library="SparkFun-Resistors" package="0603-RES" value="100k" x="45.72" y="62.23" rot="R180"/>
 </elements>
 <signals>
 <signal name="GND">
@@ -4191,8 +4191,8 @@ This Sunstone Circuits 2 Layer .DRU has been set to cover our minimum requiremen
 <wire x1="6.77" y1="62.23" x2="10.58" y2="68.58" width="0" layer="19" extent="1-1"/>
 <wire x1="85.94" y1="62.23" x2="6.77" y2="62.23" width="0" layer="19" extent="1-1"/>
 <wire x1="77.89" y1="62.23" x2="85.94" y2="62.23" width="0" layer="19" extent="1-1"/>
-<wire x1="54.19" y1="64.77" x2="77.89" y2="62.23" width="0" layer="19" extent="1-1"/>
-<wire x1="3.39" y1="-20.32" x2="54.19" y2="64.77" width="0" layer="19" extent="1-1"/>
+<wire x1="52.92" y1="62.23" x2="77.89" y2="62.23" width="0" layer="19" extent="1-1"/>
+<wire x1="44.87" y1="62.23" x2="52.92" y2="62.23" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="SCLK">
 <contactref element="U9" pad="17"/>
@@ -4575,7 +4575,7 @@ This Sunstone Circuits 2 Layer .DRU has been set to cover our minimum requiremen
 <wire x1="139.7" y1="36.83" x2="147.32" y2="36.83" width="0.254" layer="1"/>
 <wire x1="147.32" y1="36.83" x2="148.59" y2="38.1" width="0.254" layer="1"/>
 <wire x1="148.59" y1="38.1" x2="148.59" y2="45.72" width="0.254" layer="1"/>
-<wire x1="52.49" y1="64.77" x2="50.82" y2="54.59" width="0" layer="19" extent="1-1"/>
+<wire x1="51.22" y1="62.23" x2="50.82" y2="54.59" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="!CS_A2">
 <contactref element="U$4" pad="P$23"/>
@@ -4597,7 +4597,7 @@ This Sunstone Circuits 2 Layer .DRU has been set to cover our minimum requiremen
 <wire x1="139.7" y1="39.37" x2="146.05" y2="39.37" width="0.254" layer="1"/>
 <wire x1="146.05" y1="39.37" x2="147.32" y2="40.64" width="0.254" layer="1"/>
 <wire x1="147.32" y1="40.64" x2="147.32" y2="45.72" width="0.254" layer="1"/>
-<wire x1="1.69" y1="-20.32" x2="50.05" y2="54.09" width="0" layer="19" extent="1-1"/>
+<wire x1="46.57" y1="62.23" x2="50.05" y2="54.09" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="SCL">
 <contactref element="U$5" pad="P$14"/>

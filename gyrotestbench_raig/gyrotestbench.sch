@@ -13796,18 +13796,16 @@ Source: http://www.hirose.co.jp/cataloge_hp/e24000019.pdf</description>
 </net>
 <net name="!CS_G2" class="0">
 <segment>
-<pinref part="SV1" gate="1" pin="7"/>
-<pinref part="U9" gate="G$1" pin="ADC6"/>
-<wire x1="66.04" y1="10.16" x2="25.4" y2="10.16" width="0.1524" layer="91"/>
-<label x="30.48" y="10.16" size="1.778" layer="95"/>
+<pinref part="U9" gate="G$1" pin="PB0(ICP)"/>
+<wire x1="25.4" y1="-20.32" x2="66.04" y2="-20.32" width="0.1524" layer="91"/>
+<label x="30.48" y="-20.32" size="1.778" layer="95"/>
 </segment>
 </net>
 <net name="!CS_A2" class="0">
 <segment>
-<pinref part="U9" gate="G$1" pin="ADC7"/>
-<pinref part="SV1" gate="1" pin="8"/>
-<wire x1="25.4" y1="7.62" x2="66.04" y2="7.62" width="0.1524" layer="91"/>
-<label x="30.48" y="7.62" size="1.778" layer="95"/>
+<pinref part="U9" gate="G$1" pin="PB1(OC1A)"/>
+<wire x1="25.4" y1="-22.86" x2="66.04" y2="-22.86" width="0.1524" layer="91"/>
+<label x="30.48" y="-22.86" size="1.778" layer="95"/>
 </segment>
 </net>
 <net name="RXD" class="0">
@@ -14128,6 +14126,22 @@ Source: http://www.hirose.co.jp/cataloge_hp/e24000019.pdf</description>
 <wire x1="-154.94" y1="-50.8" x2="-154.94" y2="-33.02" width="0.1524" layer="91"/>
 <pinref part="IC3" gate="1" pin="USBDM"/>
 <wire x1="-154.94" y1="-33.02" x2="-144.78" y2="-33.02" width="0.1524" layer="91"/>
+</segment>
+</net>
+<net name="N$16" class="0">
+<segment>
+<pinref part="U9" gate="G$1" pin="ADC6"/>
+<pinref part="SV1" gate="1" pin="7"/>
+<wire x1="25.4" y1="10.16" x2="66.04" y2="10.16" width="0.1524" layer="91"/>
+<label x="30.48" y="10.16" size="1.778" layer="95"/>
+</segment>
+</net>
+<net name="N$17" class="0">
+<segment>
+<pinref part="U9" gate="G$1" pin="ADC7"/>
+<pinref part="SV1" gate="1" pin="8"/>
+<wire x1="25.4" y1="7.62" x2="66.04" y2="7.62" width="0.1524" layer="91"/>
+<label x="30.48" y="7.62" size="1.778" layer="95"/>
 </segment>
 </net>
 </nets>

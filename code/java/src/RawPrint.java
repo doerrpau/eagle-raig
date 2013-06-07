@@ -7,12 +7,12 @@ public class RawPrint
 
     public static void main(String args[]) throws IOException
     {
-        RAIGDriver driver = new RAIGDriver();
+        RAIGDriver2 driver = new RAIGDriver2();
         while (true) {
             if (!driver.lsm_data.isEmpty()) {
                 long time = driver.lsm_data.getFirst().timestamp;
                 for (int i = 0; i < driver.lsm_data.getFirst().samples.size(); i++) {
-                    RAIGDriver.IMUSample lsm_samp = driver.lsm_data.getFirst().samples.get(i);
+                    RAIGDriver2.IMUSample lsm_samp = driver.lsm_data.getFirst().samples.get(i);
                     System.out.println("LSM" + lsm_samp.id + ": " + 
                             lsm_samp.rateX + " " +
                             lsm_samp.rateY + " " +
@@ -25,7 +25,7 @@ public class RawPrint
             if (!driver.mpu_data.isEmpty()) {
                 long time = driver.mpu_data.getFirst().timestamp;
                 for (int i = 0; i < driver.mpu_data.getFirst().samples.size(); i++) {
-                    RAIGDriver.IMUSample mpu_samp = driver.mpu_data.getFirst().samples.get(i);
+                    RAIGDriver2.IMUSample mpu_samp = driver.mpu_data.getFirst().samples.get(i);
                     System.out.println("MPU" + mpu_samp.id + ": " + 
                             mpu_samp.rateX + " " +
                             mpu_samp.rateY + " " +

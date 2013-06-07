@@ -4185,14 +4185,23 @@ This Sunstone Circuits 2 Layer .DRU has been set to cover our minimum requiremen
 <contactref element="R17" pad="2"/>
 <contactref element="R14" pad="2"/>
 <contactref element="R15" pad="2"/>
-<wire x1="6.77" y1="52.07" x2="15.24" y2="8.47" width="0" layer="19" extent="1-1"/>
-<wire x1="6.77" y1="49.53" x2="6.77" y2="52.07" width="0" layer="19" extent="1-1"/>
-<wire x1="10.58" y1="68.58" x2="6.77" y2="49.53" width="0" layer="19" extent="1-1"/>
-<wire x1="6.77" y1="62.23" x2="10.58" y2="68.58" width="0" layer="19" extent="1-1"/>
-<wire x1="85.94" y1="62.23" x2="6.77" y2="62.23" width="0" layer="19" extent="1-1"/>
+<wire x1="6.77" y1="49.53" x2="5.08" y2="49.53" width="0.254" layer="1"/>
+<wire x1="5.08" y1="49.53" x2="5.08" y2="52.07" width="0.254" layer="1"/>
+<wire x1="10.58" y1="68.58" x2="11.85" y2="69.85" width="0.254" layer="1"/>
+<wire x1="11.85" y1="69.85" x2="17.78" y2="69.85" width="0.254" layer="1"/>
+<wire x1="17.78" y1="69.85" x2="21.59" y2="66.04" width="0.254" layer="1"/>
+<wire x1="21.59" y1="66.04" x2="27.61" y2="66.04" width="0.254" layer="1"/>
+<wire x1="10.58" y1="68.58" x2="12.7" y2="66.46" width="0.254" layer="1"/>
+<wire x1="12.7" y1="66.46" x2="12.7" y2="64.77" width="0.254" layer="1"/>
+<wire x1="12.7" y1="64.77" x2="8.89" y2="64.77" width="0.254" layer="1"/>
+<wire x1="8.89" y1="64.77" x2="6.77" y2="62.65" width="0.254" layer="1"/>
+<wire x1="6.77" y1="62.65" x2="6.77" y2="62.23" width="0.254" layer="1"/>
+<wire x1="84.61" y1="55.09" x2="85.94" y2="62.23" width="0" layer="19" extent="1-1"/>
+<wire x1="52.92" y1="62.23" x2="51.59" y2="55.09" width="0" layer="19" extent="1-1"/>
 <wire x1="77.89" y1="62.23" x2="85.94" y2="62.23" width="0" layer="19" extent="1-1"/>
-<wire x1="52.92" y1="62.23" x2="77.89" y2="62.23" width="0" layer="19" extent="1-1"/>
 <wire x1="44.87" y1="62.23" x2="52.92" y2="62.23" width="0" layer="19" extent="1-1"/>
+<wire x1="6.77" y1="49.53" x2="14.76" y2="46.2" width="0" layer="19" extent="1-1"/>
+<wire x1="6.77" y1="52.07" x2="5.08" y2="52.07" width="0" layer="19" extent="1-1"/>
 </signal>
 <signal name="SCLK">
 <contactref element="U9" pad="17"/>

@@ -123,9 +123,9 @@
 <wire x1="160" y1="0" x2="160" y2="70.79" width="0" layer="20"/>
 <wire x1="160" y1="70.79" x2="0" y2="70.79" width="0" layer="20"/>
 <wire x1="0" y1="70.79" x2="0" y2="0" width="0" layer="20"/>
-<text x="12.7" y="1.27" size="1.778" layer="21">Redundant Array of Independent Gyroscopes v1.0</text>
-<text x="144.78" y="3.81" size="1.778" layer="21">Edwin Olson</text>
-<text x="144.78" y="1.27" size="1.778" layer="21">Paul Doerr</text>
+<text x="12.7" y="1.27" size="1.778" layer="21" font="vector">Redundant Array of Independent Gyroscopes v1.1</text>
+<text x="142.24" y="3.81" size="1.778" layer="21" font="vector">Edwin Olson</text>
+<text x="142.24" y="1.27" size="1.778" layer="21" font="vector">Paul Doerr</text>
 </plain>
 <libraries>
 <library name="SparkFun-Capacitors">

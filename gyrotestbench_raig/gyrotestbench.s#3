@@ -12701,15 +12701,19 @@ Source: http://www.hirose.co.jp/cataloge_hp/e24000019.pdf</description>
 <net name="!CS_G2" class="0">
 <segment>
 <pinref part="U$4" gate="G$1" pin="!CS_G"/>
-<wire x1="127" y1="25.4" x2="154.94" y2="25.4" width="0.1524" layer="91"/>
-<label x="152.4" y="25.4" size="1.778" layer="95"/>
+<wire x1="127" y1="25.4" x2="134.62" y2="25.4" width="0.1524" layer="91"/>
+<label x="129.54" y="25.4" size="1.778" layer="95"/>
+<pinref part="R16" gate="G$1" pin="1"/>
+<wire x1="134.62" y1="25.4" x2="134.62" y2="33.02" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="!CS_A2" class="0">
 <segment>
 <pinref part="U$4" gate="G$1" pin="!CS_A"/>
-<wire x1="127" y1="22.86" x2="154.94" y2="22.86" width="0.1524" layer="91"/>
-<label x="152.4" y="22.86" size="1.778" layer="95"/>
+<wire x1="127" y1="22.86" x2="144.78" y2="22.86" width="0.1524" layer="91"/>
+<label x="137.16" y="22.86" size="1.778" layer="95"/>
+<pinref part="R17" gate="G$1" pin="1"/>
+<wire x1="144.78" y1="22.86" x2="144.78" y2="33.02" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="MISO" class="0">
@@ -12836,15 +12840,19 @@ Source: http://www.hirose.co.jp/cataloge_hp/e24000019.pdf</description>
 <net name="!CS_G3" class="0">
 <segment>
 <pinref part="U$3" gate="G$1" pin="!CS_G"/>
-<wire x1="127" y1="-43.18" x2="154.94" y2="-43.18" width="0.1524" layer="91"/>
-<label x="152.4" y="-43.18" size="1.778" layer="95"/>
+<wire x1="127" y1="-43.18" x2="134.62" y2="-43.18" width="0.1524" layer="91"/>
+<label x="127" y="-43.18" size="1.778" layer="95"/>
+<pinref part="R14" gate="G$1" pin="1"/>
+<wire x1="134.62" y1="-43.18" x2="134.62" y2="-38.1" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="!CS_A3" class="0">
 <segment>
 <pinref part="U$3" gate="G$1" pin="!CS_A"/>
-<wire x1="127" y1="-45.72" x2="154.94" y2="-45.72" width="0.1524" layer="91"/>
-<label x="152.4" y="-45.72" size="1.778" layer="95"/>
+<wire x1="127" y1="-45.72" x2="144.78" y2="-45.72" width="0.1524" layer="91"/>
+<label x="137.16" y="-45.72" size="1.778" layer="95"/>
+<pinref part="R15" gate="G$1" pin="1"/>
+<wire x1="144.78" y1="-45.72" x2="144.78" y2="-38.1" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="SCLK" class="0">

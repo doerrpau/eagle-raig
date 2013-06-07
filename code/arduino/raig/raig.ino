@@ -75,6 +75,8 @@ const byte MPU6050_GYRO_ZOUT_H = 0x47; // Z high
 const byte MPU6050_GYRO_ZOUT_L = 0x48; // Z low
 const byte MPU6050_FIFO_EN = 0x23; // Disable FIFO
 const byte MPU6050_USER_CTRL = 0x6A; // Disable FIFO
+const byte MPU6050_PWR_MGMT_1 = 0x6B; // Disable sleep
+const byte MPU6050_WHO_AM_I = 0x75; // I2C address
 
 // SPI Commands
 const byte LSM330_WRITE = B00000000;
@@ -83,9 +85,9 @@ const byte LSM330_READ_SING = B10000000;
 
 
 // SPI chip select lines for the LSM330s
-const byte NUM_LSM330 = 4;
-const byte cs_g_pin[4] = {14, 16, 18, 2};
-const byte cs_a_pin[4] = {15, 17, 19, 3};
+const byte NUM_LSM330 = 3;
+const byte cs_g_pin[3] = {14, 16, 2};
+const byte cs_a_pin[3] = {15, 17, 3};
 
 // I2C Addresses
 const byte PCA9546A_ADDR = B1110000;
@@ -132,9 +134,11 @@ void setup()
   for (byte i = 0; i < NUM_LSM330; i++) {
     // Accelerometers
     writeLSM330(LSM330_CTRL_REG1_A, B01110111, cs_a_pin[i]); // Set data rate
-    writeLSM330(LSM330_CTRL_REG4_A, B000010, cs_a_pin[i]);  // High resolution mode
+    writeLSM330(LSM330_CTRL_REG4_A, B00001000, cs_a_pin[i]);  // High resolution mode
     // Gyroscopes
-    writeLSM330(LSM330_CTRL_REG1_G, B11111111, cs_g_pin[i]); // Turn on, set data rate
+    writeLSM330(LSM330_CTRL_REG1_G, B00001111, cs_g_pin[i]); // Turn on, set data rate
+    writeLSM330(LSM330_CTRL_REG2_G, B00100000, cs_g_pin[i]); // Turn on, set data rate
+
   }
   
   // MPU6050 configuration
@@ -144,12 +148,14 @@ void setup()
   writeMPU6050(MPU6050_0_ADDR, MPU6050_GYRO_CONFIG, 0x0);
   writeMPU6050(MPU6050_0_ADDR, MPU6050_ACCEL_CONFIG, 0x0);
   writeMPU6050(MPU6050_0_ADDR, MPU6050_FIFO_EN, 0x0);
+  writeMPU6050(MPU6050_0_ADDR, MPU6050_PWR_MGMT_1, 0x0);
   writeMPU6050(MPU6050_0_ADDR, MPU6050_USER_CTRL, 0x0);
   writeMPU6050(MPU6050_1_ADDR, MPU6050_SMPRT_DIV, 0x0);
   writeMPU6050(MPU6050_1_ADDR, MPU6050_CONFIG, 0x2);
   writeMPU6050(MPU6050_1_ADDR, MPU6050_GYRO_CONFIG, 0x0);
   writeMPU6050(MPU6050_1_ADDR, MPU6050_ACCEL_CONFIG, 0x0);
   writeMPU6050(MPU6050_1_ADDR, MPU6050_FIFO_EN, 0x0);
+  writeMPU6050(MPU6050_1_ADDR, MPU6050_PWR_MGMT_1, 0x0);
   writeMPU6050(MPU6050_1_ADDR, MPU6050_USER_CTRL, 0x0);
   selectChannel1();
   writeMPU6050(MPU6050_0_ADDR, MPU6050_SMPRT_DIV, 0x0);
@@ -157,12 +163,14 @@ void setup()
   writeMPU6050(MPU6050_0_ADDR, MPU6050_GYRO_CONFIG, 0x0);
   writeMPU6050(MPU6050_0_ADDR, MPU6050_ACCEL_CONFIG, 0x0);
   writeMPU6050(MPU6050_0_ADDR, MPU6050_FIFO_EN, 0x0);
+  writeMPU6050(MPU6050_0_ADDR, MPU6050_PWR_MGMT_1, 0x0);
   writeMPU6050(MPU6050_0_ADDR, MPU6050_USER_CTRL, 0x0);
   writeMPU6050(MPU6050_1_ADDR, MPU6050_SMPRT_DIV, 0x0);
   writeMPU6050(MPU6050_1_ADDR, MPU6050_CONFIG, 0x2);
   writeMPU6050(MPU6050_1_ADDR, MPU6050_GYRO_CONFIG, 0x0);
   writeMPU6050(MPU6050_1_ADDR, MPU6050_ACCEL_CONFIG, 0x0);
   writeMPU6050(MPU6050_1_ADDR, MPU6050_FIFO_EN, 0x0);
+  writeMPU6050(MPU6050_1_ADDR, MPU6050_PWR_MGMT_1, 0x0);
   writeMPU6050(MPU6050_1_ADDR, MPU6050_USER_CTRL, 0x0);
   
   // setup delay
@@ -188,11 +196,11 @@ void loop()
   }
   // MPU6050
   selectChannel0();
-  addMPU6050Msg(4, MPU6050_0_ADDR);
-  addMPU6050Msg(5, MPU6050_1_ADDR);
+  addMPU6050Msg(0, MPU6050_0_ADDR);
+  addMPU6050Msg(1, MPU6050_1_ADDR);
   selectChannel1();
-  addMPU6050Msg(6, MPU6050_0_ADDR);
-  addMPU6050Msg(7, MPU6050_1_ADDR);
+  addMPU6050Msg(2, MPU6050_0_ADDR);
+  addMPU6050Msg(3, MPU6050_1_ADDR);
   
   // Timestamp + checksum:w
   
@@ -217,7 +225,6 @@ void addLSM330Msg(byte i)
   data_buffer[data_size++] = i;
   
   // Add 6 bytes of gyroscope data
-  byte temp[6];
   readLSM330(LSM330_OUT_X_L_G, cs_g_pin[i], 6, data_buffer+data_size);
   data_size += 6;
 
@@ -249,6 +256,20 @@ void addMPU6050Msg(byte i, byte addr)
   data_size += 2; 
 }
 
+void addMPU6050TestMsg(byte i, byte addr)
+{
+  // Add message type and ID bytes
+  data_buffer[data_size++] = MSG_MPU6050;
+  data_buffer[data_size++] = i;
+  
+  // Test data
+  int j;
+  for (j = 0; j < 14; j++) {
+    readMPU6050(addr, MPU6050_WHO_AM_I, 1, data_buffer+data_size);
+    data_size++;
+  }
+}
+
 void addTimestampMsg()
 {
   data_buffer[data_size++] = MSG_TIMESTAMP;
@@ -276,7 +297,7 @@ void addChecksumMsg()
 // Needs: read register address, arduino chip select line, num bytes to read, array to store data
 void readLSM330(byte regAddr, byte chipSelect, byte numBytes, byte* data) 
 { 
-  // Conbine register address and command
+  // Combine register address and command
   byte cmd_addr = regAddr | LSM330_READ_MULT;
   // select device
   digitalWrite(chipSelect, LOW);
@@ -293,7 +314,7 @@ void readLSM330(byte regAddr, byte chipSelect, byte numBytes, byte* data)
 // Needs: read register address, arduino chip select line, num bytes to read, array to store data
 byte readLSM330(byte regAddr, byte chipSelect) 
 { 
-  // Conbine register address and command
+  // Combine register address and command
   byte cmd_addr = regAddr | LSM330_READ_SING;
   // select device
   digitalWrite(chipSelect, LOW);
