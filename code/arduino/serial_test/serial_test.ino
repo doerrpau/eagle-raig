@@ -11,11 +11,23 @@ const byte data_size = 32;
 
 byte time = 0;
 
+// SPI chip select lines for the LSM330s
+const byte NUM_LSM330 = 3;
+const byte cs_g_pin[3] = {14, 16, 2};
+const byte cs_a_pin[3] = {15, 17, 3};
+
 void setup() 
 {
   delay(1000);
   
   Serial.begin(115200);
+  
+  for (byte i = 0; i < NUM_LSM330; i++) {
+    pinMode(cs_g_pin[i], OUTPUT);
+    pinMode(cs_a_pin[i], OUTPUT);
+    digitalWrite(cs_g_pin[i], HIGH);
+    digitalWrite(cs_a_pin[i], HIGH);
+  }
 
   delay(10);
   

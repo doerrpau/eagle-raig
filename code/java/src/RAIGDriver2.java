@@ -29,6 +29,7 @@ public class RAIGDriver2 implements SerialPortEventListener
         public short accelZ;
         public short temp;
         // Sensor ID
+        // Guaranteed to be from 0 to num sensors-1 
         public byte id;
     };
 
@@ -62,6 +63,8 @@ public class RAIGDriver2 implements SerialPortEventListener
             serialPort.setEventsMask(mask);
             serialPort.addEventListener(this);
 
+            // Wait for port to be opened
+            Thread.sleep(8000);
 		} catch (Exception e) {
 			System.err.println(e.toString());
 		}

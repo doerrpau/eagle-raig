@@ -2,7 +2,7 @@ import java.io.*;
 import java.util.*;
 import java.lang.*;
 
-public class Main
+public class PSDUtility
 {
 
     public static void main(String args[]) throws IOException
@@ -27,28 +27,20 @@ public class Main
                                           + "\t" + imu_mpu.getOffsets()[i][2]);
         }
 
-        // Start data processing
-        Thread lsm_thread = new Thread(imu_lsm);
-        Thread mpu_thread = new Thread(imu_mpu);
-        lsm_thread.start();
-        mpu_thread.start();
+        // Calculate PSDs
+        imu_lsm.calculatePSD(1000);
+        imu_mpu.calculatePSD(1000);
        
-        long start_time = System.currentTimeMillis();
-
-        while (imu_mpu.getSensorZHeadings()[0] > -3.14 && imu_mpu.getSensorZHeadings()[0] < 3.14) {
-            for (int i = 0; i < imu_lsm.getNumSensors(); i++) {
-                System.out.println("LSM" + i + ":\t" + imu_lsm.getSensorZHeadings()[i]);
-            }
-            for (int i = 0; i < imu_mpu.getNumSensors(); i++) {
-                System.out.println("MPU" + i + ":\t" + imu_mpu.getSensorZHeadings()[i]);
-            }
-            try {
-                Thread.sleep(200);
-            } 
-            catch (Exception e) { return; }
+        // Read ARWs
+        for (int i = 0; i < imu_lsm.getNumSensors(); i++) {
+            System.out.println("LSM" + i + ":\t" + imu_lsm.getARWs()[i][0]
+                                          + "\t" + imu_lsm.getARWs()[i][1]
+                                          + "\t" + imu_lsm.getARWs()[i][2]);
         }
-
-        System.out.println("It took " + ((System.currentTimeMillis() - start_time)/1000) + 
-                           " seconds for mpu random walk to exceed Pi radians");
+        for (int i = 0; i < imu_mpu.getNumSensors(); i++) {
+            System.out.println("MPU" + i + ":\t" + imu_mpu.getARWs()[i][0]
+                                          + "\t" + imu_mpu.getARWs()[i][1]
+                                          + "\t" + imu_mpu.getARWs()[i][2]);
+        }
     }
 }

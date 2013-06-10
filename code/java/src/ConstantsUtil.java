@@ -2,7 +2,7 @@ import java.io.*;
 import java.util.*;
 import java.lang.*;
 
-public class Main
+public class ConstantsUtil
 {
 
     public static void main(String args[]) throws IOException
@@ -32,23 +32,24 @@ public class Main
         Thread mpu_thread = new Thread(imu_mpu);
         lsm_thread.start();
         mpu_thread.start();
-       
-        long start_time = System.currentTimeMillis();
 
-        while (imu_mpu.getSensorZHeadings()[0] > -3.14 && imu_mpu.getSensorZHeadings()[0] < 3.14) {
-            for (int i = 0; i < imu_lsm.getNumSensors(); i++) {
-                System.out.println("LSM" + i + ":\t" + imu_lsm.getSensorZHeadings()[i]);
-            }
-            for (int i = 0; i < imu_mpu.getNumSensors(); i++) {
-                System.out.println("MPU" + i + ":\t" + imu_mpu.getSensorZHeadings()[i]);
-            }
-            try {
-                Thread.sleep(200);
-            } 
-            catch (Exception e) { return; }
+        // Wait for manual rotation, then read heading data again
+        Scanner reader = new Scanner(System.in);
+        System.out.println("Rotate 360 degrees, then press Enter");
+        reader.nextLine();
+
+        for (int i = 0; i < imu_lsm.getNumSensors(); i++) {
+            System.out.println("LSM" + i + ":\t" + imu_lsm.getSensorHeadings()[i][0]
+                                          + "\t" + imu_lsm.getSensorHeadings()[i][1]
+                                          + "\t" + imu_lsm.getSensorHeadings()[i][2]);
+        }
+        for (int i = 0; i < imu_mpu.getNumSensors(); i++) {
+            System.out.println("MPU" + i + ":\t" + imu_mpu.getSensorHeadings()[i][0]
+                                          + "\t" + imu_mpu.getSensorHeadings()[i][1]
+                                          + "\t" + imu_mpu.getSensorHeadings()[i][2]);
         }
 
-        System.out.println("It took " + ((System.currentTimeMillis() - start_time)/1000) + 
-                           " seconds for mpu random walk to exceed Pi radians");
+        // Stop all threads and exit
+        System.exit(0);
     }
 }

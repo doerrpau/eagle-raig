@@ -7,7 +7,7 @@ public class RawPrint
 
     public static void main(String args[]) throws IOException
     {
-        RAIGDriver2 driver = new RAIGDriver2();
+        RAIGDriver2 driver = RAIGDriver2.getSingleton();
         while (true) {
             if (!driver.lsm_data.isEmpty()) {
                 long time = driver.lsm_data.getFirst().timestamp;

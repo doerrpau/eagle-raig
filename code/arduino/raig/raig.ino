@@ -112,7 +112,10 @@ unsigned long lastTime = 0;
 
 void setup() 
 {
-  delay(1000);
+  SPI.begin();
+  delay(500);
+  SPI.end();
+  delay(500);
   
   Serial.begin(115200);
 
