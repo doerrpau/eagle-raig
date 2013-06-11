@@ -17,7 +17,11 @@ public class IMU implements Runnable
     private double fNoiseSqY = 0.0;
     private double fNoiseSqZ = 0.0;
     private double f_psd_total_time = 0.0;
-    // Total calculated heading of each axis
+    // Calculated rate of each axis (rad/sec)
+    private double fRateX = 0.0;
+    private double fRateY = 0.0;
+    private double fRateZ = 0.0;
+    // Total calculated heading of each axis (rad)
     private double fHeadX = 0.0;
     private double fHeadY = 0.0;
     private double fHeadZ = 0.0;
@@ -33,7 +37,7 @@ public class IMU implements Runnable
     private class IMUData
     {
         // Gyroscope Data
-        // Conversion constants (Raw to radians per hour)
+        // Conversion constants (Raw to radians per sec)
         private double kRateX = 1.0;
         private double kRateY = 1.0;
         private double kRateZ = 1.0;
@@ -41,6 +45,10 @@ public class IMU implements Runnable
         private double oRateX = 0.0;
         private double oRateY = 0.0;
         private double oRateZ = 0.0;
+        // Rate of each axis (rad/sec)
+        private double rateX = 0.0;
+        private double rateY = 0.0;
+        private double rateZ = 0.0;
         // Total calculated heading of each axis
         private double headX = 0.0;
         private double headY = 0.0;
@@ -128,9 +136,12 @@ public class IMU implements Runnable
             }
 
             // Update gyroscope heading
-            deltaX = time_diff*((samp.rateX - getOffsetX())*kRateX + temp*tSenX);
-            deltaY = time_diff*((samp.rateY - getOffsetY())*kRateY + temp*tSenY);
-            deltaZ = time_diff*((samp.rateZ - getOffsetZ())*kRateZ + temp*tSenZ);
+            rateX = (samp.rateX - getOffsetX())*kRateX + temp*tSenX;
+            rateY = (samp.rateY - getOffsetY())*kRateY + temp*tSenY;
+            rateZ = (samp.rateZ - getOffsetZ())*kRateZ + temp*tSenZ;
+            deltaX = time_diff*rateX;
+            deltaY = time_diff*rateY;
+            deltaZ = time_diff*rateZ;
             headX += deltaX;
             headY += deltaY;
             headZ += deltaZ;
@@ -143,7 +154,7 @@ public class IMU implements Runnable
             // Update temperature
             temp = (double)samp.temp;
         }
-        // Used to calculate the noise power spectral density in (rad/sqrt(hr))^2/Hz
+        // Used to calculate the noise power spectral density in (rad/sqrt(sec))^2/Hz
         public void add_psd_samp(RAIGDriver2.IMUSample samp, double time_diff)
         {
             // Ignore new sample if it came before previous sample
@@ -200,7 +211,7 @@ public class IMU implements Runnable
             return noiseZ;
         }
 
-        // Rate Noise PSD in (rad/sqrt(hr))^2/Hz
+        // Rate Noise PSD in (rad/sqrt(sec))^2/Hz
         public double getPSDX()
         {
             if (psd_total_time == 0.0) {
@@ -240,6 +251,20 @@ public class IMU implements Runnable
             return headZ;
         }
         
+        // Current gyroscope rate in rad/sec
+        public double getRateX()
+        {
+            return rateX;
+        }
+        public double getRateY()
+        {
+            return rateY;
+        }
+        public double getRateZ()
+        {
+            return rateZ;
+        }
+
         // Most recent change of heading in radians
         public double getDeltaX()
         {
@@ -313,10 +338,10 @@ public class IMU implements Runnable
         new IMUData(1.0, 1.0, 1.0)
     };
     private final IMUData[] MPU6050_DATA = new IMUData[]{
-        new IMUData(1.0, 1.0, Math.PI/6.66667),
-        new IMUData(1.0, 1.0, Math.PI/6.66667),
-        new IMUData(1.0, 1.0, Math.PI/6.66667),
-        new IMUData(1.0, 1.0, Math.PI/6.66667)
+        new IMUData(1.0, 1.0, Math.PI/24000.0),
+        new IMUData(1.0, 1.0, Math.PI/24000.0),
+        new IMUData(1.0, 1.0, Math.PI/24000.0),
+        new IMUData(1.0, 1.0, Math.PI/24000.0)
     };
 
     // Enum for implemented sensor types
@@ -397,7 +422,7 @@ public class IMU implements Runnable
                     RAIGDriver2.IMUSample imu_samp = data_stream.getFirst().samples.get(i);
                     if (imu_samp.id >= 0 && imu_samp.id < num_sensors) {
                         if (prev_samp_time[imu_samp.id] != 0) {
-                            imu_data[imu_samp.id].add_cal_samp(imu_samp, diffHours(curr_time, prev_samp_time[imu_samp.id]));
+                            imu_data[imu_samp.id].add_cal_samp(imu_samp, diffSecs(curr_time, prev_samp_time[imu_samp.id]));
                         }
                         prev_samp_time[imu_samp.id] = curr_time;
                     }
@@ -436,7 +461,7 @@ public class IMU implements Runnable
                     RAIGDriver2.IMUSample imu_samp = data_stream.getFirst().samples.get(i);
                     if (imu_samp.id >= 0 && imu_samp.id < num_sensors) {
                         if (prev_samp_time[imu_samp.id] != 0) {
-                            imu_data[imu_samp.id].add_psd_samp(imu_samp, diffHours(curr_time, prev_samp_time[imu_samp.id]));
+                            imu_data[imu_samp.id].add_psd_samp(imu_samp, diffSecs(curr_time, prev_samp_time[imu_samp.id]));
                         }
                         prev_samp_time[imu_samp.id] = curr_time;
                     }
@@ -454,7 +479,7 @@ public class IMU implements Runnable
                         fNoiseZ += imu_data[i].getNoiseZ()/num_sensors;
                     }
 
-                    double time_diff = diffHours(prev_time, curr_time);
+                    double time_diff = diffSecs(prev_time, curr_time);
                     fNoiseSqX += time_diff*Math.pow(fNoiseX,2.0);
                     fNoiseSqY += time_diff*Math.pow(fNoiseY,2.0);
                     fNoiseSqZ += time_diff*Math.pow(fNoiseZ,2.0);
@@ -489,7 +514,7 @@ public class IMU implements Runnable
                     RAIGDriver2.IMUSample imu_samp = data_stream.getFirst().samples.get(i);
                     if (imu_samp.id >= 0 && imu_samp.id < num_sensors) {
                         if (prev_samp_time[imu_samp.id] != 0) {
-                            imu_data[imu_samp.id].add_samp(imu_samp, diffHours(curr_time, prev_samp_time[imu_samp.id]));
+                            imu_data[imu_samp.id].add_samp(imu_samp, diffSecs(curr_time, prev_samp_time[imu_samp.id]));
                             fHeadX += imu_data[i].getDeltaX()/num_sensors;
                             fHeadY += imu_data[i].getDeltaY()/num_sensors;
                             fHeadZ += imu_data[i].getDeltaZ()/num_sensors;
@@ -705,6 +730,43 @@ public class IMU implements Runnable
         return fHeadZ;
     }
     
+    // Return an array of fused XYZ rates
+    public double[] getFusedRates()
+    {
+        double[] rates = new double[3];
+        for (int i = 0; i < num_sensors; i++) {
+            rates[0] += imu_data[i].getRateX()/num_sensors;
+            rates[1] += imu_data[i].getRateY()/num_sensors;
+            rates[2] += imu_data[i].getRateZ()/num_sensors;
+        }
+        return rates;
+    }
+    // Returns 1 axis of fused rates
+    public double getFusedRateX()
+    {
+        double rate = 0.0;
+        for (int i = 0; i < num_sensors; i++) {
+            rate += imu_data[i].getRateX()/num_sensors;
+        }
+        return rate;
+    }
+    public double getFusedRateY()
+    {
+        double rate = 0.0;
+        for (int i = 0; i < num_sensors; i++) {
+            rate += imu_data[i].getRateY()/num_sensors;
+        }
+        return rate;
+    }
+    public double getFusedRateZ()
+    {
+        double rate = 0.0;
+        for (int i = 0; i < num_sensors; i++) {
+            rate += imu_data[i].getRateZ()/num_sensors;
+        }
+        return rate;
+    }
+
     // Return an array of fused (averaged) XYZ accelerations
     public double[] getFusedAccels()
     {
@@ -770,7 +832,7 @@ public class IMU implements Runnable
     // Convert an array of power spectral densities to angle random walks
     public double[] toARW(double[] psds)
     {
-        double[] arws = new double[psds.size];
+        double[] arws = new double[psds.length];
         for (int i = 0; i < psds.length; i++) {
             arws[i] = (1.0/60.0)*Math.sqrt(psds[i]);
         }
@@ -785,11 +847,24 @@ public class IMU implements Runnable
     // Convert an array of power spectral densities to rate random walks
     public double[] toRRW(double[] psds)
     {
-        double[] rrws = new double[psds.size];
+        double[] rrws = new double[psds.length];
         for (int i = 0; i < psds.length; i++) {
             rrws[i] = Math.sqrt(psds[i]);
         }
         return rrws;
+    }
+    // Convert radians to degrees
+    public double toDegrees(double rad)
+    {
+        return rad*(180.0/Math.PI);
+    }
+    public double toDegrees(double[] rads)
+    {
+        double[] degs = new double[rads.length];
+        for (int i = 0; i < rads.length; i++) {
+            degs[i] = rads[i]*(180.0/Math.PI);
+        }
+        return degs;
     }
 
     //
@@ -800,9 +875,9 @@ public class IMU implements Runnable
 
     // Takes 2 'long' times in milliseconds
     // Arguments should be in forware chronological order
-    // Returns their difference in hours
-    private double diffHours(long first, long second)
+    // Returns their difference in seconds
+    private double diffSecs(long first, long second)
     {
-        return ((double)(second - first))/(1000.0*60.0*60.0);
+        return ((double)(second - first))/(1000.0);
     }
 }
