@@ -34,9 +34,9 @@ public class IMU implements Runnable
     {
         // Gyroscope Data
         // Conversion constants (Raw to radians per hour)
-        private double kRateX = 0.0;
-        private double kRateY = 0.0;
-        private double kRateZ = 0.0;
+        private double kRateX = 1.0;
+        private double kRateY = 1.0;
+        private double kRateZ = 1.0;
         // 0-bias of the gyroscopes
         private double oRateX = 0.0;
         private double oRateY = 0.0;
@@ -73,13 +73,40 @@ public class IMU implements Runnable
         private double accelZ = 0.0;
 
         // Temperature Data
-        private int temp = 0;
+        private double temp = 0.0;
+        // Temperature offset constants
+        private double tOffX = 0.0;
+        private double tOffY = 0.0;
+        private double tOffZ = 0.0;
+        // Temperature sensitivity constants
+        private double tSenX = 0.0;
+        private double tSenY = 0.0;
+        private double tSenZ = 0.0;
 
         public IMUData(double krx, double kry, double krz)
         {
             kRateX = krx;
             kRateY = kry;
             kRateZ = krz;
+        }
+
+        public IMUData(double krx, double kry, double krz,
+                       double kax, double kay, double kaz,
+                       double tox, double toy, double toz,
+                       double tsx, double tsy, double tsz)
+        {
+            kRateX = krx;
+            kRateY = kry;
+            kRateZ = krz;
+            kAccelX = kax;
+            kAccelY = kay;
+            kAccelZ = kaz;
+            tOffX = tox;
+            tOffY = toy;
+            tOffZ = toz;
+            tSenX = tsx;
+            tSenY = tsy;
+            tSenZ = tsz;
         }
 
         public void add_cal_samp(RAIGDriver2.IMUSample samp, double time_diff)
@@ -101,9 +128,9 @@ public class IMU implements Runnable
             }
 
             // Update gyroscope heading
-            deltaX = time_diff*(samp.rateX - getOffsetX())*kRateX;
-            deltaY = time_diff*(samp.rateY - getOffsetY())*kRateY;
-            deltaZ = time_diff*(samp.rateZ - getOffsetZ())*kRateZ;
+            deltaX = time_diff*((samp.rateX - getOffsetX())*kRateX + temp*tSenX);
+            deltaY = time_diff*((samp.rateY - getOffsetY())*kRateY + temp*tSenY);
+            deltaZ = time_diff*((samp.rateZ - getOffsetZ())*kRateZ + temp*tSenZ);
             headX += deltaX;
             headY += deltaY;
             headZ += deltaZ;
@@ -114,7 +141,7 @@ public class IMU implements Runnable
             accelZ = samp.accelZ*kAccelZ;
 
             // Update temperature
-            temp = samp.temp;
+            temp = (double)samp.temp;
         }
         // Used to calculate the noise power spectral density in (rad/sqrt(hr))^2/Hz
         public void add_psd_samp(RAIGDriver2.IMUSample samp, double time_diff)
@@ -139,7 +166,7 @@ public class IMU implements Runnable
             if (calib_total_time == 0) {
                 return 0.0;
             } else {
-                return oRateX / (double)calib_total_time;
+                return oRateX/calib_total_time + temp*tOffX;
             }
         }
         public double getOffsetY()
@@ -147,7 +174,7 @@ public class IMU implements Runnable
             if (calib_total_time == 0) {
                 return 0.0;
             } else {
-                return oRateY / (double)calib_total_time;
+                return oRateY/calib_total_time + temp*tOffY;
             }
         }
         public double getOffsetZ()
@@ -155,7 +182,7 @@ public class IMU implements Runnable
             if (calib_total_time == 0) {
                 return 0.0;
             } else {
-                return oRateZ / (double)calib_total_time;
+                return oRateZ/calib_total_time + temp*tOffZ;
             }
         }
         
@@ -240,6 +267,13 @@ public class IMU implements Runnable
         {
             return accelZ;
         }
+
+        // Temperature value (in ???)
+        public double getTemp()
+        {
+            return temp;
+        }
+
         // Clear data so we can recalibrate etc.
         public void clearOffset()
         {
@@ -606,6 +640,16 @@ public class IMU implements Runnable
             headings[i] = imu_data[i].getHeadingZ();
         }
         return headings;
+    }
+
+    // Return Temperature of all sensors
+    public double[] getTemps()
+    {
+        double[] temps = new double[num_sensors];
+        for (int i = 0; i < num_sensors; i++) {
+            temps[i] = imu_data[i].getTemp();
+        }
+        return temps;
     }
 
     //
