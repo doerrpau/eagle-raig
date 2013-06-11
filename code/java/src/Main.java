@@ -35,12 +35,12 @@ public class Main
        
         long start_time = System.currentTimeMillis();
 
-        while (imu_mpu.getSensorZHeadings()[0] > -3.14 && imu_mpu.getSensorZHeadings()[0] < 3.14) {
+        while (imu_mpu.getSensorHeadingsZ()[0] > -3.14 && imu_mpu.getSensorHeadingsZ()[0] < 3.14) {
             for (int i = 0; i < imu_lsm.getNumSensors(); i++) {
-                System.out.println("LSM" + i + ":\t" + imu_lsm.getSensorZHeadings()[i]);
+                System.out.println("LSM" + i + ":\t" + imu_lsm.getSensorHeadingsZ()[i]);
             }
             for (int i = 0; i < imu_mpu.getNumSensors(); i++) {
-                System.out.println("MPU" + i + ":\t" + imu_mpu.getSensorZHeadings()[i]);
+                System.out.println("MPU" + i + ":\t" + imu_mpu.getSensorHeadingsZ()[i]);
             }
             try {
                 Thread.sleep(200);

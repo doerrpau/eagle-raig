@@ -33,14 +33,14 @@ public class PSDUtility
        
         // Read ARWs
         for (int i = 0; i < imu_lsm.getNumSensors(); i++) {
-            System.out.println("LSM" + i + ":\t" + imu_lsm.getARWs()[i][0]
-                                          + "\t" + imu_lsm.getARWs()[i][1]
-                                          + "\t" + imu_lsm.getARWs()[i][2]);
+            System.out.println("LSM" + i + ":\t" + imu_lsm.getRRWs()[i][0]
+                                          + "\t" + imu_lsm.getRRWs()[i][1]
+                                          + "\t" + imu_lsm.getRRWs()[i][2]);
         }
         for (int i = 0; i < imu_mpu.getNumSensors(); i++) {
-            System.out.println("MPU" + i + ":\t" + imu_mpu.getARWs()[i][0]
-                                          + "\t" + imu_mpu.getARWs()[i][1]
-                                          + "\t" + imu_mpu.getARWs()[i][2]);
+            System.out.println("MPU" + i + ":\t" + imu_mpu.getRRWs()[i][0]
+                                          + "\t" + imu_mpu.getRRWs()[i][1]
+                                          + "\t" + imu_mpu.getRRWs()[i][2]);
         }
     }
 }

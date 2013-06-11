@@ -10,6 +10,12 @@ public class IMU implements Runnable
     // Singletons
     private static IMU lsmIMU = null;
     private static IMU mpuIMU = null;
+    
+    // Fused Sensor Information    
+    // Power Spectral Density values
+    private double fNoiseSqX = 0.0;
+    private double fNoiseSqY = 0.0;
+    private double fNoiseSqZ = 0.0;
 
     // This class calculates and stores data for a single sensor
     // Data is not automatically added to this class -
@@ -40,6 +46,11 @@ public class IMU implements Runnable
         private double deltaX = 0.0;
         private double deltaY = 0.0;
         private double deltaZ = 0.0;
+        // Most recent noise (deviation from bias value)
+        // Used to calculate fused PSDs
+        private double noiseX = 0.0; 
+        private double noiseY = 0.0; 
+        private double noiseZ = 0.0; 
 
         public IMUData(double krx, double kry, double krz)
         {
@@ -83,9 +94,13 @@ public class IMU implements Runnable
             if (time_diff < 0.0) {
                 time_diff = 0.0;
             }
-            noiseSqX += time_diff*Math.pow((samp.rateX - getOffsetX())*kRateX,2.0);
-            noiseSqY += time_diff*Math.pow((samp.rateY - getOffsetY())*kRateY,2.0);
-            noiseSqZ += time_diff*Math.pow((samp.rateZ - getOffsetZ())*kRateZ,2.0);
+            noiseX = (samp.rateX - getOffsetX())*kRateX;
+            noiseY = (samp.rateY - getOffsetY())*kRateY;
+            noiseZ = (samp.rateZ - getOffsetZ())*kRateZ;
+
+            noiseSqX += time_diff*Math.pow(noiseX,2.0);
+            noiseSqY += time_diff*Math.pow(noiseY,2.0);
+            noiseSqZ += time_diff*Math.pow(noiseZ,2.0);
             psd_total_time += time_diff;
         }
 
@@ -111,7 +126,7 @@ public class IMU implements Runnable
             if (calib_total_time == 0) {
                 return 0.0;
             } else {
-                return oRateX /= (double)calib_total_time;
+                return oRateX / (double)calib_total_time;
             }
         }
         public double getOffsetY()
@@ -119,7 +134,7 @@ public class IMU implements Runnable
             if (calib_total_time == 0) {
                 return 0.0;
             } else {
-                return oRateY /= (double)calib_total_time;
+                return oRateY / (double)calib_total_time;
             }
         }
         public double getOffsetZ()
@@ -127,8 +142,22 @@ public class IMU implements Runnable
             if (calib_total_time == 0) {
                 return 0.0;
             } else {
-                return oRateZ /= (double)calib_total_time;
+                return oRateZ / (double)calib_total_time;
             }
+        }
+        
+        // Rate Noise
+        public double getNoiseX()
+        {
+            return noiseX;
+        }
+        public double getNoiseY()
+        {
+            return noiseY;
+        }
+        public double getNoiseZ()
+        {
+            return noiseZ;
         }
 
         // Rate Noise PSD in (rad/sqrt(hr))^2/Hz
@@ -137,7 +166,7 @@ public class IMU implements Runnable
             if (psd_total_time == 0.0) {
                 return 0.0;
             } else {
-                return noiseSqX /= psd_total_time;
+                return noiseSqX / psd_total_time;
             }
         }
         public double getPSDY()
@@ -145,7 +174,7 @@ public class IMU implements Runnable
             if (psd_total_time == 0.0) {
                 return 0.0;
             } else {
-                return noiseSqY /= psd_total_time;
+                return noiseSqY / psd_total_time;
             }
         }
         public double getPSDZ()
@@ -153,22 +182,36 @@ public class IMU implements Runnable
             if (psd_total_time == 0.0) {
                 return 0.0;
             } else {
-                return noiseSqZ /= psd_total_time;
+                return noiseSqZ / psd_total_time;
             }
         }
 
         // Angle Random Walk in rad/sqrt(hr)
         public double getARWX()
         {
-            return (1/60)*Math.sqrt(getPSDX());
+            return (1.0/60.0)*Math.sqrt(getPSDX());
         }
         public double getARWY()
         {
-            return (1/60)*Math.sqrt(getPSDY());
+            return (1.0/60.0)*Math.sqrt(getPSDY());
         }
         public double getARWZ()
         {
-            return (1/60)*Math.sqrt(getPSDZ());
+            return (1.0/60.0)*Math.sqrt(getPSDZ());
+        }
+        
+        // Rate Random Walk (Spectral Density) in rad/hr-sqrt(Hz)
+        public double getRRWX()
+        {
+            return Math.sqrt(getPSDX());
+        }
+        public double getRRWY()
+        {
+            return Math.sqrt(getPSDY());
+        }
+        public double getRRWZ()
+        {
+            return Math.sqrt(getPSDZ());
         }
         
         // Headings in radians
@@ -412,7 +455,7 @@ public class IMU implements Runnable
     {
         double[] offsets = new double[num_sensors];
         for (int i = 0; i < num_sensors; i++) {
-            psds[i] = imu_data[i].getOffsetX();
+            offsets[i] = imu_data[i].getOffsetX();
         }
         return offsets;
     }
@@ -420,7 +463,7 @@ public class IMU implements Runnable
     {
         double[] offsets = new double[num_sensors];
         for (int i = 0; i < num_sensors; i++) {
-            psds[i] = imu_data[i].getOffsetY();
+            offsets[i] = imu_data[i].getOffsetY();
         }
         return offsets;
     }
@@ -428,7 +471,7 @@ public class IMU implements Runnable
     {
         double[] offsets = new double[num_sensors];
         for (int i = 0; i < num_sensors; i++) {
-            psds[i] = imu_data[i].getOffsetZ();
+            offsets[i] = imu_data[i].getOffsetZ();
         }
         return offsets;
     }
@@ -505,6 +548,43 @@ public class IMU implements Runnable
             arws[i] = imu_data[i].getARWZ();
         }
         return arws;
+    }
+
+    // Return an array of XYZ RRWs for all sensors
+    public double[][] getRRWs()
+    {
+        double[][] rrws = new double[num_sensors][3];
+        for (int i = 0; i < num_sensors; i++) {
+            rrws[i][0] = imu_data[i].getRRWX();
+            rrws[i][1] = imu_data[i].getRRWY();
+            rrws[i][2] = imu_data[i].getRRWZ();
+        }
+        return rrws;
+    }
+    // Return an array of 1 axis of ARWs for all sensors
+    public double[] getRRWsX()
+    {
+        double[] rrws = new double[num_sensors];
+        for (int i = 0; i < num_sensors; i++) {
+            rrws[i] = imu_data[i].getRRWX();
+        }
+        return rrws;
+    }
+    public double[] getRRWsY()
+    {
+        double[] rrws = new double[num_sensors];
+        for (int i = 0; i < num_sensors; i++) {
+            rrws[i] = imu_data[i].getRRWY();
+        }
+        return rrws;
+    }
+    public double[] getRRWsZ()
+    {
+        double[] rrws = new double[num_sensors];
+        for (int i = 0; i < num_sensors; i++) {
+            rrws[i] = imu_data[i].getRRWZ();
+        }
+        return rrws;
     }
 
     // Return an array of XYZ headings for all sensors
