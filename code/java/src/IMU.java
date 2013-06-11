@@ -21,6 +21,10 @@ public class IMU implements Runnable
     private double fHeadX = 0.0;
     private double fHeadY = 0.0;
     private double fHeadZ = 0.0;
+    // Acceleration (m/s^2)
+    private double fAccelX = 0.0;
+    private double fAccelY = 0.0;
+    private double fAccelZ = 0.0;
 
     // This class calculates and stores data for a single sensor
     // Data is not automatically added to this class -
@@ -28,6 +32,7 @@ public class IMU implements Runnable
     // samples into the class
     private class IMUData
     {
+        // Gyroscope Data
         // Conversion constants (Raw to radians per hour)
         private double kRateX = 0.0;
         private double kRateY = 0.0;
@@ -41,7 +46,7 @@ public class IMU implements Runnable
         private double headY = 0.0;
         private double headZ = 0.0;
         // Calibration duration
-        private long calib_total_time = 0;
+        private double calib_total_time = 0;
         // Power Spectral Density values
         private double noiseSqX = 0.0;
         private double noiseSqY = 0.0;
@@ -57,6 +62,19 @@ public class IMU implements Runnable
         private double noiseY = 0.0;
         private double noiseZ = 0.0;
 
+        // Accelerometer Data
+        // Conversion constants (Raw to m/s^2)
+        private double kAccelX = 0.0;
+        private double kAccelY = 0.0;
+        private double kAccelZ = 0.0;
+        // Acceleration (m/s^2)
+        private double accelX = 0.0;
+        private double accelY = 0.0;
+        private double accelZ = 0.0;
+
+        // Temperature Data
+        private int temp = 0;
+
         public IMUData(double krx, double kry, double krz)
         {
             kRateX = krx;
@@ -64,9 +82,8 @@ public class IMU implements Runnable
             kRateZ = krz;
         }
 
-        public void add_cal_samp(RAIGDriver2.IMUSample samp, long prev_time, long curr_time)
+        public void add_cal_samp(RAIGDriver2.IMUSample samp, double time_diff)
         {
-            long time_diff = curr_time - prev_time;
             // Ignore new sample if it came before previous sample
             if (time_diff < 0) {
                 time_diff = 0;
@@ -76,25 +93,32 @@ public class IMU implements Runnable
             oRateZ += time_diff*samp.rateZ;
             calib_total_time += time_diff;
         }
-        public void add_samp(RAIGDriver2.IMUSample samp, long prev_time, long curr_time)
+        public void add_samp(RAIGDriver2.IMUSample samp, double time_diff)
         {
-            double time_diff = ((double)(curr_time - prev_time))/(1000.0*60.0*60.0);
             // Ignore new sample if it came before previous sample
             if (time_diff < 0.0) {
                 time_diff = 0.0;
             }
-            deltaX = (samp.rateX - getOffsetX())*kRateX;
-            deltaY = (samp.rateY - getOffsetY())*kRateY;
-            deltaZ = (samp.rateZ - getOffsetZ())*kRateZ;
 
-            headX += time_diff*deltaX;
-            headY += time_diff*deltaY;
-            headZ += time_diff*deltaZ;
+            // Update gyroscope heading
+            deltaX = time_diff*(samp.rateX - getOffsetX())*kRateX;
+            deltaY = time_diff*(samp.rateY - getOffsetY())*kRateY;
+            deltaZ = time_diff*(samp.rateZ - getOffsetZ())*kRateZ;
+            headX += deltaX;
+            headY += deltaY;
+            headZ += deltaZ;
+
+            // Update acceleration
+            accelX = samp.accelX*kAccelX;
+            accelY = samp.accelY*kAccelY;
+            accelZ = samp.accelZ*kAccelZ;
+
+            // Update temperature
+            temp = samp.temp;
         }
         // Used to calculate the noise power spectral density in (rad/sqrt(hr))^2/Hz
-        public void add_psd_samp(RAIGDriver2.IMUSample samp, long prev_time, long curr_time)
+        public void add_psd_samp(RAIGDriver2.IMUSample samp, double time_diff)
         {
-            double time_diff = ((double)(curr_time - prev_time))/(1000.0*60.0*60.0);
             // Ignore new sample if it came before previous sample
             if (time_diff < 0.0) {
                 time_diff = 0.0;
@@ -202,7 +226,20 @@ public class IMU implements Runnable
         {
             return deltaZ;
         }
-
+        
+        // Acceleration in m/s^2
+        public double getAccelX()
+        {
+            return accelX;
+        }
+        public double getAccelY()
+        {
+            return accelY;
+        }
+        public double getAccelZ()
+        {
+            return accelZ;
+        }
         // Clear data so we can recalibrate etc.
         public void clearOffset()
         {
@@ -315,17 +352,20 @@ public class IMU implements Runnable
 
         long start = System.currentTimeMillis();
 
+        // Store timestamps from sensor messages
+        long curr_time = 0;
+
         // Sum gyroscope samples
         while (System.currentTimeMillis() - start < calib_millis) {
             while (!data_stream.isEmpty()) {
-                long timestamp = data_stream.getFirst().timestamp;
+                curr_time = data_stream.getFirst().timestamp;
                 for (int i = 0; i < data_stream.getFirst().samples.size(); i++) {
                     RAIGDriver2.IMUSample imu_samp = data_stream.getFirst().samples.get(i);
                     if (imu_samp.id >= 0 && imu_samp.id < num_sensors) {
                         if (prev_samp_time[imu_samp.id] != 0) {
-                            imu_data[imu_samp.id].add_cal_samp(imu_samp, prev_samp_time[imu_samp.id], timestamp);
+                            imu_data[imu_samp.id].add_cal_samp(imu_samp, diffHours(curr_time, prev_samp_time[imu_samp.id]));
                         }
-                        prev_samp_time[imu_samp.id] = timestamp;
+                        prev_samp_time[imu_samp.id] = curr_time;
                     }
                 }
                 data_stream.remove();
@@ -362,7 +402,7 @@ public class IMU implements Runnable
                     RAIGDriver2.IMUSample imu_samp = data_stream.getFirst().samples.get(i);
                     if (imu_samp.id >= 0 && imu_samp.id < num_sensors) {
                         if (prev_samp_time[imu_samp.id] != 0) {
-                            imu_data[imu_samp.id].add_psd_samp(imu_samp, prev_samp_time[imu_samp.id], curr_time);
+                            imu_data[imu_samp.id].add_psd_samp(imu_samp, diffHours(curr_time, prev_samp_time[imu_samp.id]));
                         }
                         prev_samp_time[imu_samp.id] = curr_time;
                     }
@@ -375,16 +415,12 @@ public class IMU implements Runnable
                     double fNoiseZ = 0.0;
 
                     for (int i = 0; i < num_sensors; i++) {
-                        fNoiseX += imu_data[i].getNoiseX();
-                        fNoiseY += imu_data[i].getNoiseY();
-                        fNoiseZ += imu_data[i].getNoiseZ();
+                        fNoiseX += imu_data[i].getNoiseX()/num_sensors;
+                        fNoiseY += imu_data[i].getNoiseY()/num_sensors;
+                        fNoiseZ += imu_data[i].getNoiseZ()/num_sensors;
                     }
 
-                    fNoiseX /= num_sensors;
-                    fNoiseY /= num_sensors;
-                    fNoiseZ /= num_sensors;
-
-                    double time_diff = ((double)(curr_time - prev_time))/(1000.0*60.0*60.0);
+                    double time_diff = diffHours(prev_time, curr_time);
                     fNoiseSqX += time_diff*Math.pow(fNoiseX,2.0);
                     fNoiseSqY += time_diff*Math.pow(fNoiseY,2.0);
                     fNoiseSqZ += time_diff*Math.pow(fNoiseZ,2.0);
@@ -411,7 +447,6 @@ public class IMU implements Runnable
         
         // Store timestamps from sensor messages
         long curr_time = 0;
-        long prev_time = 0;
 
         while (true) {
             while (!data_stream.isEmpty()) {
@@ -420,23 +455,14 @@ public class IMU implements Runnable
                     RAIGDriver2.IMUSample imu_samp = data_stream.getFirst().samples.get(i);
                     if (imu_samp.id >= 0 && imu_samp.id < num_sensors) {
                         if (prev_samp_time[imu_samp.id] != 0) {
-                            imu_data[imu_samp.id].add_samp(imu_samp, prev_samp_time[imu_samp.id], timestamp);
+                            imu_data[imu_samp.id].add_samp(imu_samp, diffHours(curr_time, prev_samp_time[imu_samp.id]));
+                            fHeadX += imu_data[i].getDeltaX()/num_sensors;
+                            fHeadY += imu_data[i].getDeltaY()/num_sensors;
+                            fHeadZ += imu_data[i].getDeltaZ()/num_sensors;
                         }
-                        prev_samp_time[imu_samp.id] = timestamp;
+                        prev_samp_time[imu_samp.id] = curr_time;
                     }
                 }
-
-                // Calculate fused sensor heading
-                if (time_prev != 0) {
-                    double time_diff = ((double)(curr_time - prev_time))/(1000.0*60.0*60.0);
-                    for (int i = 0; i < num_sensors; i++) {
-                        fHeadX += time_diff*imu_data[i].getDeltaX()/num_sensors;
-                        fHeadY += time_diff*imu_data[i].getDeltaY()/num_sensors;
-                        fHeadZ += time_diff*imu_data[i].getDeltaZ()/num_sensors;
-                    }
-                }
-
-                prev_time = curr_time;
                 data_stream.remove();
             }
             try {
@@ -622,7 +648,7 @@ public class IMU implements Runnable
         return headings;
     }
     // Returns 1 axis of fused headings
-    public double getSensorHeadingX()
+    public double getFusedHeadingX()
     {
         return fHeadX;
     }
@@ -633,6 +659,43 @@ public class IMU implements Runnable
     public double getFusedHeadingZ()
     {
         return fHeadZ;
+    }
+    
+    // Return an array of fused (averaged) XYZ accelerations
+    public double[] getFusedAccels()
+    {
+        double[] accels = new double[3];
+        for (int i = 0; i < num_sensors; i++) {
+            accels[0] += imu_data[i].getAccelX()/num_sensors;
+            accels[1] += imu_data[i].getAccelY()/num_sensors;
+            accels[2] += imu_data[i].getAccelZ()/num_sensors;
+        }
+        return accels;
+    }
+    // Returns 1 axis of fused (averaged) accelerations
+    public double getFusedAccelX()
+    {
+        double accel = 0.0;
+        for (int i = 0; i < num_sensors; i++) {
+            accel += imu_data[i].getAccelX()/num_sensors;
+        }
+        return accel;
+    }
+    public double getFusedAccelY()
+    {
+        double accel = 0.0;
+        for (int i = 0; i < num_sensors; i++) {
+            accel += imu_data[i].getAccelY()/num_sensors;
+        }
+        return accel;
+    }
+    public double getFusedAccelZ()
+    {
+        double accel = 0.0;
+        for (int i = 0; i < num_sensors; i++) {
+            accel += imu_data[i].getAccelZ()/num_sensors;
+        }
+        return accel;
     }
 
     // Use to ground truth/reset calculated headings
@@ -683,5 +746,19 @@ public class IMU implements Runnable
             rrws[i] = Math.sqrt(psds[i]);
         }
         return rrws;
+    }
+
+    //
+    //
+    // IMU Helper Functions
+    //
+    //
+
+    // Takes 2 'long' times in milliseconds
+    // Arguments should be in forware chronological order
+    // Returns their difference in hours
+    private double diffHours(long first, long second)
+    {
+        return ((double)(second - first))/(1000.0*60.0*60.0);
     }
 }
