@@ -422,7 +422,7 @@ public class IMU implements Runnable
                     RAIGDriver2.IMUSample imu_samp = data_stream.getFirst().samples.get(i);
                     if (imu_samp.id >= 0 && imu_samp.id < num_sensors) {
                         if (prev_samp_time[imu_samp.id] != 0) {
-                            imu_data[imu_samp.id].add_cal_samp(imu_samp, diffSecs(curr_time, prev_samp_time[imu_samp.id]));
+                            imu_data[imu_samp.id].add_cal_samp(imu_samp, diffSecs(prev_samp_time[imu_samp.id], curr_time));
                         }
                         prev_samp_time[imu_samp.id] = curr_time;
                     }
@@ -456,19 +456,19 @@ public class IMU implements Runnable
         // Send gyroscope samples to respective IMU object for processing
         while (System.currentTimeMillis() - start < psd_millis) {
             while (!data_stream.isEmpty()) {
-                curr_time = data_stream.getFirst().curr_time;
+                curr_time = data_stream.getFirst().timestamp;
                 for (int i = 0; i < data_stream.getFirst().samples.size(); i++) {
                     RAIGDriver2.IMUSample imu_samp = data_stream.getFirst().samples.get(i);
                     if (imu_samp.id >= 0 && imu_samp.id < num_sensors) {
                         if (prev_samp_time[imu_samp.id] != 0) {
-                            imu_data[imu_samp.id].add_psd_samp(imu_samp, diffSecs(curr_time, prev_samp_time[imu_samp.id]));
+                            imu_data[imu_samp.id].add_psd_samp(imu_samp, diffSecs(prev_samp_time[imu_samp.id], curr_time));
                         }
                         prev_samp_time[imu_samp.id] = curr_time;
                     }
                 }
 
                 // Calculate fused sensor PSD
-                if (time_prev != 0) {
+                if (prev_time != 0) {
                     double fNoiseX = 0.0;
                     double fNoiseY = 0.0;
                     double fNoiseZ = 0.0;
@@ -509,12 +509,12 @@ public class IMU implements Runnable
 
         while (true) {
             while (!data_stream.isEmpty()) {
-                long timestamp = data_stream.getFirst().timestamp;
+                curr_time = data_stream.getFirst().timestamp;
                 for (int i = 0; i < data_stream.getFirst().samples.size(); i++) {
                     RAIGDriver2.IMUSample imu_samp = data_stream.getFirst().samples.get(i);
                     if (imu_samp.id >= 0 && imu_samp.id < num_sensors) {
                         if (prev_samp_time[imu_samp.id] != 0) {
-                            imu_data[imu_samp.id].add_samp(imu_samp, diffSecs(curr_time, prev_samp_time[imu_samp.id]));
+                            imu_data[imu_samp.id].add_samp(imu_samp, diffSecs(prev_samp_time[imu_samp.id], curr_time));
                             fHeadX += imu_data[i].getDeltaX()/num_sensors;
                             fHeadY += imu_data[i].getDeltaY()/num_sensors;
                             fHeadZ += imu_data[i].getDeltaZ()/num_sensors;
@@ -685,7 +685,7 @@ public class IMU implements Runnable
     //
 
     // Return an array of fused XYZ PSDs
-    public double[][] getPSDs()
+    public double[] getFusedPSDs()
     {
         double[] psds = new double[3];
         psds[0] = fNoiseSqX / f_psd_total_time;
@@ -694,15 +694,15 @@ public class IMU implements Runnable
         return psds;
     }
     // Return 1 axis of fused PSDs
-    public double getPSDX()
+    public double getFusedPSDX()
     {
         return fNoiseSqX / f_psd_total_time;
     }
-    public double getPSDY()
+    public double getFusedPSDY()
     {
         return fNoiseSqY / f_psd_total_time;
     }
-    public double getPSDZ()
+    public double getFusedPSDZ()
     {
         return fNoiseSqZ / f_psd_total_time;
     }
@@ -825,12 +825,12 @@ public class IMU implements Runnable
     //
 
     // Convert a power spectral density to an angle random walk
-    public double toARW(double psd)  
+    static public double toARW(double psd)  
     {
         return (1.0/60.0)*Math.sqrt(psd);
     }
     // Convert an array of power spectral densities to angle random walks
-    public double[] toARW(double[] psds)
+    static public double[] toARW(double[] psds)
     {
         double[] arws = new double[psds.length];
         for (int i = 0; i < psds.length; i++) {
@@ -839,13 +839,13 @@ public class IMU implements Runnable
         return arws;
     }
     // Convert a power spectral density to a rate random walk
-    public double toRRW(double psd)
+    static public double toRRW(double psd)
     {
         return Math.sqrt(psd);
 
     }
     // Convert an array of power spectral densities to rate random walks
-    public double[] toRRW(double[] psds)
+    static public double[] toRRW(double[] psds)
     {
         double[] rrws = new double[psds.length];
         for (int i = 0; i < psds.length; i++) {
@@ -854,11 +854,11 @@ public class IMU implements Runnable
         return rrws;
     }
     // Convert radians to degrees
-    public double toDegrees(double rad)
+    static public double toDegrees(double rad)
     {
         return rad*(180.0/Math.PI);
     }
-    public double toDegrees(double[] rads)
+    static public double[] toDegrees(double[] rads)
     {
         double[] degs = new double[rads.length];
         for (int i = 0; i < rads.length; i++) {

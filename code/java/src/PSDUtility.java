@@ -15,32 +15,21 @@ public class PSDUtility
         imu_lsm.calibrate(1000);
         imu_mpu.calibrate(1000);
 
-        // Read 0-offsets
-        for (int i = 0; i < imu_lsm.getNumSensors(); i++) {
-            System.out.println("LSM" + i + ":\t" + imu_lsm.getOffsets()[i][0]
-                                          + "\t" + imu_lsm.getOffsets()[i][1]
-                                          + "\t" + imu_lsm.getOffsets()[i][2]);
-        }
-        for (int i = 0; i < imu_mpu.getNumSensors(); i++) {
-            System.out.println("MPU" + i + ":\t" + imu_mpu.getOffsets()[i][0]
-                                          + "\t" + imu_mpu.getOffsets()[i][1]
-                                          + "\t" + imu_mpu.getOffsets()[i][2]);
-        }
-
         // Calculate PSDs
         imu_lsm.calculatePSD(1000);
         imu_mpu.calculatePSD(1000);
        
         // Read ARWs
         for (int i = 0; i < imu_lsm.getNumSensors(); i++) {
-            System.out.println("LSM" + i + ":\t" + imu_lsm.getRRWs()[i][0]
-                                          + "\t" + imu_lsm.getRRWs()[i][1]
-                                          + "\t" + imu_lsm.getRRWs()[i][2]);
+            System.out.println("LSMZ" + i + ":\t" + IMU.toDegrees(IMU.toRRW(imu_lsm.getPSDsZ()[i])));
         }
         for (int i = 0; i < imu_mpu.getNumSensors(); i++) {
-            System.out.println("MPU" + i + ":\t" + imu_mpu.getRRWs()[i][0]
-                                          + "\t" + imu_mpu.getRRWs()[i][1]
-                                          + "\t" + imu_mpu.getRRWs()[i][2]);
+            System.out.println("MPUZ" + i + ":\t" + IMU.toDegrees(IMU.toRRW(imu_mpu.getPSDsZ()[i])));
         }
+        System.out.println("LSMFUSEDZ" + ":\t" + IMU.toDegrees(IMU.toRRW(imu_lsm.getFusedPSDZ())));
+        System.out.println("MPUFUSEDZ" + ":\t" + IMU.toDegrees(IMU.toRRW(imu_mpu.getFusedPSDZ())));
+
+        // Done, close threads and exit
+        System.exit(0);
     }
 }
