@@ -28,20 +28,21 @@ public class Main
         }
 
         // Start data processing
-        Thread lsm_thread = new Thread(imu_lsm);
-        Thread mpu_thread = new Thread(imu_mpu);
-        lsm_thread.start();
-        mpu_thread.start();
+        imu_lsm.start();
+        imu_mpu.start();
        
         long start_time = System.currentTimeMillis();
 
-        while (imu_mpu.getSensorHeadingsZ()[0] > -3.14 && imu_mpu.getSensorHeadingsZ()[0] < 3.14) {
-            for (int i = 0; i < imu_lsm.getNumSensors(); i++) {
-                System.out.println("LSM" + i + ":\t" + imu_lsm.getSensorHeadingsZ()[i]);
-            }
-            for (int i = 0; i < imu_mpu.getNumSensors(); i++) {
-                System.out.println("MPU" + i + ":\t" + imu_mpu.getSensorHeadingsZ()[i]);
-            }
+        while (imu_mpu.getSensorHeadings()[0][2] > -3.14 && imu_mpu.getSensorHeadings()[0][2] < 3.14) {
+            //for (int i = 0; i < imu_lsm.getNumSensors(); i++) {
+            //    System.out.println("LSM" + i + ":\t" + imu_lsm.getSensorHeadings()[i][2]);
+            //}
+            //for (int i = 0; i < imu_mpu.getNumSensors(); i++) {
+            //    System.out.println("MPU" + i + ":\t" + imu_mpu.getSensorHeadings()[i][2]);
+            //}
+            System.out.println("MPU0:\t" + imu_mpu.getSensorHeadings()[0][2]);
+            System.out.println("LSM1:\t" + imu_lsm.getSensorHeadings()[1][2]);
+            System.out.println("Fused:\t" + imu_mpu.getFusedHeadings()[2]);
             try {
                 Thread.sleep(200);
             } 
@@ -50,5 +51,10 @@ public class Main
 
         System.out.println("It took " + ((System.currentTimeMillis() - start_time)/1000) + 
                            " seconds for mpu random walk to exceed Pi radians");
+
+        // Stop other threads
+        imu_lsm.exit();
+        imu_mpu.exit();
+        RAIGDriver.getSingleton().close();
     }
 }

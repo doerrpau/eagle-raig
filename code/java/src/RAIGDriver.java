@@ -1,18 +1,16 @@
 import java.io.*;
 import java.util.*;
-import java.lang.*;
 import java.nio.*;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-import gnu.io.CommPortIdentifier; 
-import gnu.io.SerialPort;
-import gnu.io.SerialPortEvent; 
-import gnu.io.SerialPortEventListener; 
+import java.lang.*;
+import jssc.*;
 import java.util.Enumeration;
+import java.util.Properties;
 
 
-public class RAIGDriver implements SerialPortEventListener {
+public class RAIGDriver implements SerialPortEventListener 
+{
+    private static RAIGDriver singleton = null;
+
 	SerialPort serialPort;
 
     // Queues for decoded IMU data
@@ -24,14 +22,11 @@ public class RAIGDriver implements SerialPortEventListener {
     public class IMUSample
     {
         // Unprocessed sensor data
-        public short rateX;
-        public short rateY;
-        public short rateZ;
-        public short accelX;
-        public short accelY;
-        public short accelZ;
+        public short rate[] = new short[3];
+        public short accel[] = new short[3];
         public short temp;
         // Sensor ID
+        // Guaranteed to be from 0 to num sensors-1 
         public byte id;
     };
 
@@ -42,61 +37,31 @@ public class RAIGDriver implements SerialPortEventListener {
         public Vector<IMUSample> samples;
     };
 
-    /** The port we're normally going to use. */
-	private static final String PORT_NAMES[] = { 
-			"/dev/tty.usbserial-A9007UX1", // Mac OS X
-			"/dev/ttyUSB0", // Linux
-			"COM3", // Windows
-	};
-	/**
-	* A BufferedReader which will be fed by a InputStreamReader 
-	* converting the bytes into characters 
-	* making the displayed results codepage independent
-	*/
-	//private BufferedReader input;
-	private InputStreamReader input;
-	/** Milliseconds to block while waiting for port open */
-	private static final int TIME_OUT = 2000;
-	/** Default bits per second for COM port. */
-	private static final int DATA_RATE = 115200;
+    public static RAIGDriver getSingleton()
+    {
+        if (singleton == null) {
+            singleton = new RAIGDriver();
+        }
+        return singleton;
+    }
 
-	public RAIGDriver() {
-		CommPortIdentifier portId = null;
-		Enumeration portEnum = CommPortIdentifier.getPortIdentifiers();
-
-		//First, Find an instance of serial port as set in PORT_NAMES.
-		while (portEnum.hasMoreElements()) {
-			CommPortIdentifier currPortId = (CommPortIdentifier) portEnum.nextElement();
-			for (String portName : PORT_NAMES) {
-				if (currPortId.getName().equals(portName)) {
-					portId = currPortId;
-					break;
-				}
-			}
-		}
-		if (portId == null) {
-			System.out.println("Could not find COM port.");
-			return;
-		}
+	protected RAIGDriver() 
+    {
+	    serialPort = new SerialPort("/dev/ttyUSB0");
 
 		try {
-			// open serial port, and use class name for the appName.
-			serialPort = (SerialPort) portId.open(this.getClass().getName(),
-					TIME_OUT);
+			serialPort.openPort();
+            serialPort.setParams(115200, 
+                                 SerialPort.DATABITS_8,
+                                 SerialPort.STOPBITS_1,
+                                 SerialPort.PARITY_NONE);
 
-			// set port parameters
-			serialPort.setSerialPortParams(DATA_RATE,
-					SerialPort.DATABITS_8,
-					SerialPort.STOPBITS_1,
-					SerialPort.PARITY_NONE);
+            int mask = SerialPort.MASK_RXCHAR;
+            serialPort.setEventsMask(mask);
+            serialPort.addEventListener(this);
 
-			// open the streams
-			//input = new BufferedReader(new InputStreamReader(serialPort.getInputStream()));
-			input = new InputStreamReader(serialPort.getInputStream());
-
-			// add event listeners
-			serialPort.addEventListener(this);
-			serialPort.notifyOnDataAvailable(true);
+            // Wait for port to be opened
+            Thread.sleep(8000);
 		} catch (Exception e) {
 			System.err.println(e.toString());
 		}
@@ -107,17 +72,21 @@ public class RAIGDriver implements SerialPortEventListener {
 	 * This will prevent port locking on platforms like Linux.
 	 */
 	public synchronized void close() {
-		if (serialPort != null) {
-			serialPort.removeEventListener();
-			serialPort.close();
-		}
+        try {
+		    if (serialPort != null) {
+			    serialPort.removeEventListener();
+			    serialPort.closePort();
+		    }
+        } catch (Exception e) {
+            System.err.println(e.toString());
+        }
 	}
 
 	/**
 	 * Handle an event on the serial port. Read the data and print it.
 	 */
 	public synchronized void serialEvent(SerialPortEvent oEvent) {
-		if (oEvent.getEventType() == SerialPortEvent.DATA_AVAILABLE) {
+		if (oEvent.isRXCHAR()) {
             demarshall();	
 		}
 	}
@@ -133,66 +102,61 @@ public class RAIGDriver implements SerialPortEventListener {
 
             byte checksum = 0;
 
-		    while (input.ready()) {
-                char curByte = (char)input.read();
+		    while (true) {
+                char curByte = (char)serialPort.readBytes(1)[0];
                 // State machine processes messages
                 switch (curByte) {
                     case 'L':
                         IMUSample newLsm = new IMUSample();
                         // Get sensor ID
-                        newLsm.id = (byte)input.read();
+                        newLsm.id = (byte)serialPort.readBytes(1)[0];
                         // Get rate data
-                        ByteBuffer bb = ByteBuffer.allocate(2);
-                        bb.order(ByteOrder.BIG_ENDIAN);
-                        bb.put((byte)input.read());
-                        bb.put((byte)input.read());
-                        newLsm.rateX = bb.getShort(0);
-                        //newLsm.rateX = (short)(newLsm.rateX | (input.read() & 0xFF));
-                        //newLsm.rateX = (short)(newLsm.rateX | ((input.read() & 0xFF) << 8));
-                        newLsm.rateY = (short)(newLsm.rateY | (input.read() & 0xFF));
-                        newLsm.rateY = (short)(newLsm.rateY | ((input.read() << 8) & 0xFF00));
-                        newLsm.rateZ = (short)(newLsm.rateZ | (input.read() & 0xFF));
-                        newLsm.rateZ = (short)(newLsm.rateZ | ((input.read() << 8) & 0xFF00));
+                        newLsm.rate[0] = (short)(newLsm.rate[0] | (serialPort.readBytes(1)[0] & 0xFF));
+                        newLsm.rate[0] = (short)(newLsm.rate[0] | ((serialPort.readBytes(1)[0] & 0xFF) << 8));
+                        newLsm.rate[1] = (short)(newLsm.rate[1] | (serialPort.readBytes(1)[0] & 0xFF));
+                        newLsm.rate[1] = (short)(newLsm.rate[1] | ((serialPort.readBytes(1)[0] << 8) & 0xFF00));
+                        newLsm.rate[2] = (short)(newLsm.rate[2] | (serialPort.readBytes(1)[0] & 0xFF));
+                        newLsm.rate[2] = (short)(newLsm.rate[2] | ((serialPort.readBytes(1)[0] << 8) & 0xFF00));
                         // Get acceleration data
-                        newLsm.accelX = (short)(newLsm.accelX | (input.read() & 0xFF));
-                        newLsm.accelX = (short)(newLsm.accelX | ((input.read() << 8) & 0xFF00));
-                        newLsm.accelY = (short)(newLsm.accelY | (input.read() & 0xFF));
-                        newLsm.accelY = (short)(newLsm.accelY | ((input.read() << 8) & 0xFF00));
-                        newLsm.accelZ = (short)(newLsm.accelZ | (input.read() & 0xFF));
-                        newLsm.accelZ = (short)(newLsm.accelZ | ((input.read() << 8) & 0xFF00));
+                        newLsm.accel[0] = (short)(newLsm.accel[0] | (serialPort.readBytes(1)[0] & 0xFF));
+                        newLsm.accel[0] = (short)(newLsm.accel[0] | ((serialPort.readBytes(1)[0] << 8) & 0xFF00));
+                        newLsm.accel[1] = (short)(newLsm.accel[1] | (serialPort.readBytes(1)[0] & 0xFF));
+                        newLsm.accel[1] = (short)(newLsm.accel[1] | ((serialPort.readBytes(1)[0] << 8) & 0xFF00));
+                        newLsm.accel[2] = (short)(newLsm.accel[2] | (serialPort.readBytes(1)[0] & 0xFF));
+                        newLsm.accel[2] = (short)(newLsm.accel[2] | ((serialPort.readBytes(1)[0] << 8) & 0xFF00));
                         // Get temperature data
-                        newLsm.temp = (byte)input.read();
+                        newLsm.temp = (byte)serialPort.readBytes(1)[0];
                         newLsms.samples.add(newLsm);
                         break;
                     case 'M':
                         IMUSample newMpu = new IMUSample();
                         // Get sensor ID
-                        newMpu.id = (byte)input.read();
+                        newMpu.id = (byte)serialPort.readBytes(1)[0];
                         // Get rate data
-                        newMpu.rateX = (short)input.read();
-                        newMpu.rateX = (short)((newMpu.rateX << 8) | (input.read() & 0xFF));
-                        newMpu.rateY = (short)input.read();
-                        newMpu.rateY = (short)((newMpu.rateY << 8) | (input.read() & 0xFF));
-                        newMpu.rateZ = (short)input.read();
-                        newMpu.rateZ = (short)((newMpu.rateZ << 8) | (input.read() & 0xFF));
+                        newMpu.rate[0] = (short)serialPort.readBytes(1)[0];
+                        newMpu.rate[0] = (short)((newMpu.rate[0] << 8) | (serialPort.readBytes(1)[0] & 0xFF));
+                        newMpu.rate[1] = (short)serialPort.readBytes(1)[0];
+                        newMpu.rate[1] = (short)((newMpu.rate[1] << 8) | (serialPort.readBytes(1)[0] & 0xFF));
+                        newMpu.rate[2] = (short)serialPort.readBytes(1)[0];
+                        newMpu.rate[2] = (short)((newMpu.rate[2] << 8) | (serialPort.readBytes(1)[0] & 0xFF));
                         // Get acceleration data
-                        newMpu.accelX = (short)input.read();
-                        newMpu.accelX = (short)((newMpu.accelX << 8) | (input.read() & 0xFF));
-                        newMpu.accelY = (short)input.read();
-                        newMpu.accelY = (short)((newMpu.accelY << 8) | (input.read() & 0xFF));
-                        newMpu.accelZ = (short)input.read();
-                        newMpu.accelZ = (short)((newMpu.accelZ << 8) | (input.read() & 0xFF));
+                        newMpu.accel[0] = (short)serialPort.readBytes(1)[0];
+                        newMpu.accel[0] = (short)((newMpu.accel[0] << 8) | (serialPort.readBytes(1)[0] & 0xFF));
+                        newMpu.accel[1] = (short)serialPort.readBytes(1)[0];
+                        newMpu.accel[1] = (short)((newMpu.accel[1] << 8) | (serialPort.readBytes(1)[0] & 0xFF));
+                        newMpu.accel[2] = (short)serialPort.readBytes(1)[0];
+                        newMpu.accel[2] = (short)((newMpu.accel[2] << 8) | (serialPort.readBytes(1)[0] & 0xFF));
                         // Get temperature data
-                        newMpu.temp = (short)input.read();
-                        newMpu.temp = (short)((newMpu.temp << 8) | (input.read() & 0xFF));
+                        newMpu.temp = (short)serialPort.readBytes(1)[0];
+                        newMpu.temp = (short)((newMpu.temp << 8) | (serialPort.readBytes(1)[0] & 0xFF));
                         newMpus.samples.add(newMpu);
                         break;
                     case 'T':
-                        long time = input.read();
-                        time = ((time << 8) | (input.read() & 0xFF));
-                        time = ((time << 8) | (input.read() & 0xFF));
-                        time = ((time << 8) | (input.read() & 0xFF));
-                        input.read();
+                        long time = serialPort.readBytes(1)[0];
+                        time = ((time << 8) | (serialPort.readBytes(1)[0] & 0xFF));
+                        time = ((time << 8) | (serialPort.readBytes(1)[0] & 0xFF));
+                        time = ((time << 8) | (serialPort.readBytes(1)[0] & 0xFF));
+                        serialPort.readBytes(1);
                         // TODO: Implement checksum
                         // Add to queues and exit
                         if (!newLsms.samples.isEmpty()) {

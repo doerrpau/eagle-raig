@@ -86,8 +86,8 @@ const byte LSM330_READ_SING = B10000000;
 
 // SPI chip select lines for the LSM330s
 const byte NUM_LSM330 = 3;
-const byte cs_g_pin[3] = {14, 16, 2};
-const byte cs_a_pin[3] = {15, 17, 3};
+const byte cs_g_pin[3] = {14, 16, 2, 8};
+const byte cs_a_pin[3] = {15, 17, 3, 9};
 
 // I2C Addresses
 const byte PCA9546A_ADDR = B1110000;
