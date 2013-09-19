@@ -22,9 +22,9 @@ public class RAIGDriver implements SerialPortEventListener
     public class IMUSample
     {
         // Unprocessed sensor data
+        public int temp;
         public short rate[] = new short[3];
         public short accel[] = new short[3];
-        public short temp;
         // Sensor ID
         // Guaranteed to be from 0 to num sensors-1 
         public byte id;
@@ -149,6 +149,7 @@ public class RAIGDriver implements SerialPortEventListener
                         // Get temperature data
                         newMpu.temp = (short)serialPort.readBytes(1)[0];
                         newMpu.temp = (short)((newMpu.temp << 8) | (serialPort.readBytes(1)[0] & 0xFF));
+                        newMpu.temp = newMpu.temp & 0xFFFF;
                         newMpus.samples.add(newMpu);
                         break;
                     case 'T':

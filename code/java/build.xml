@@ -2,6 +2,14 @@
 
 <project name="Main" default="build" basedir=".">
 
+  <property name="lib.dir" value ="./lib"/>
+  <path id="classpath">
+    <fileset dir="${lib.dir}" includes="**/*.jar"/>
+    <fileset dir="${user.home}/april/java" includes="**/*.jar" />
+    <fileset dir="${user.home}/java" includes="**/*.jar" />
+    <fileset dir="/usr/local/share/java" includes="**/*.jar" />
+  </path>
+
   <condition property="main.class" value="${ant.project.name}">
     <not>
       <isset property="main.class"/>
@@ -17,9 +25,11 @@
        optimize="off"
        destdir="build"
        compiler="extJavac"
+       classpathref="classpath"
        deprecation="yes"
        source="1.5"
        target="1.5"
+       includeantruntime="false"
        >
     </javac>
   </target>
@@ -33,7 +43,13 @@
   </target>
 
   <target name="run" depends="jar">
-    <java fork="true" jar="${ant.project.name}.jar"/>
+    <java fork="true" classname="${main.class}">
+      <sysproperty key="java.library.path" path="./lib:${java.library.path}"/>
+      <classpath>
+        <path refid="classpath"/>
+        <path location="${ant.project.name}.jar"/>
+      </classpath>
+    </java>
   </target>
 
   <target name="clean" >

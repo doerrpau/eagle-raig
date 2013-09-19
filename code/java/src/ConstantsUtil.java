@@ -8,8 +8,8 @@ public class ConstantsUtil
     public static void main(String args[]) throws IOException
     {
         // Get IMU singletons
-        IMU imu_lsm = IMU.getSingleton(IMU.IMUType.LSM330); 
-        IMU imu_mpu = IMU.getSingleton(IMU.IMUType.MPU6050);
+        IMU imu_lsm = new IMU(IMU.IMUType.LSM330); 
+        IMU imu_mpu = new IMU(IMU.IMUType.MPU6050);
 
         // Calibrate IMUs
         imu_lsm.calibrate(1000);

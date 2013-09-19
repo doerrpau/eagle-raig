@@ -1,48 +1,121 @@
 import java.io.*;
 import java.util.*;
 import java.lang.*;
+import java.awt.*;
+import java.awt.image.*;
+import javax.swing.*;
+
+import april.jcam.*;
+import april.util.*;
+import april.jmat.*;
+import april.vis.*;
 
 public class Main
 {
+    static IMU imu_mpu = new IMU(IMU.IMUType.MPU6050);
+    
+    static ParameterGUI pg_controls = new ParameterGUI();
+    static ParameterGUI pg_gyros = new ParameterGUI();
+    static ParameterGUI pg_algos = new ParameterGUI();
 
+    volatile static boolean running = false;
+
+    public Main() throws IOException {
+    
+         // Set up GUI
+        JFrame jf = new JFrame("RAIG Control Panel");
+        jf.setLayout(null);
+        ParameterGUIListener pgl = new ParameterGUIListener();
+       
+        // Add elements
+        pg_controls.addButtons("reset", "Reset", "start", "Start");
+        pg_controls.addInt("time","Seconds", 0);
+        for (int i = 0; i < imu_mpu.getNumSensors(); i++) {
+            pg_gyros.addDouble("mpu" + i, "Z Axis MPU6050-" + i, 0.0);
+        }
+
+        pg_algos.addDouble("average", "Average of Gyros", 0.0);
+        pg_algos.addDouble("best", "Best Single Gyro", 0.0);
+        pg_algos.addDouble("wa", "Weighted Average", 0.0);
+        
+        jf.add(pg_controls);
+        pg_controls.setBounds(0,400,900,150);
+        pg_controls.addListener(pgl);
+        jf.add(pg_gyros);
+        pg_gyros.setBounds(0,0,200,400);
+        jf.add(pg_algos);
+        pg_algos.setBounds(500,0,200,400);
+
+        // Show GUI
+        jf.setSize(1000, 550);
+        jf.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        jf.setVisible(true);   
+    
+    }
+
+    class ParameterGUIListener implements ParameterListener
+    {
+        public void parameterChanged(ParameterGUI pg, String name)
+        {
+
+            if (name == "reset") {
+                if (running) {
+                    running = false;
+                    imu_mpu.exit();
+                    imu_mpu = new IMU(IMU.IMUType.MPU6050);;
+                    System.gc();
+                }
+            } else if (name == "start") {
+                if (!running) {
+                    // Calibrate and start IMU
+                    imu_mpu.calibrate(1000);
+                    imu_mpu.start();
+                    running = true;
+                }
+            }
+        }
+    }
     public static void main(String args[]) throws IOException
     {
-        // Get IMU singletons
-        IMU imu_lsm = IMU.getSingleton(IMU.IMUType.LSM330); 
-        IMU imu_mpu = IMU.getSingleton(IMU.IMUType.MPU6050);
+        new Main();
 
-        // Calibrate IMUs
-        imu_lsm.calibrate(1000);
-        imu_mpu.calibrate(1000);
+        while (true) {
 
-        // Read 0-offsets
-        for (int i = 0; i < imu_lsm.getNumSensors(); i++) {
-            System.out.println("LSM" + i + ":\t" + imu_lsm.getOffsets()[i][0]
-                                          + "\t" + imu_lsm.getOffsets()[i][1]
-                                          + "\t" + imu_lsm.getOffsets()[i][2]);
+            if (running) {
+                for (int i = 0; i < imu_mpu.getNumSensors(); i++) {
+                    pg_gyros.sd("mpu" + i, imu_mpu.getSensorHeadings()[i][2]);
+                }
+                pg_algos.sd("average", imu_mpu.getAverageHeadings()[2]);
+                pg_algos.sd("best", imu_mpu.getBestHeadings()[2]);
+                pg_algos.sd("wa", imu_mpu.getWAverageHeadings()[2]);
+                
+            } else {
+                for (int i = 0; i < imu_mpu.getNumSensors(); i++) {
+                    pg_gyros.sd("mpu" + i, 0.0);
+                }
+                pg_algos.sd("average", 0.0);
+                pg_algos.sd("best", 0.0);
+                pg_algos.sd("wa", 0.0);
+            }
+            try {
+                Thread.sleep(200);
+            } 
+            catch (Exception e) { return; }
+
         }
-        for (int i = 0; i < imu_mpu.getNumSensors(); i++) {
-            System.out.println("MPU" + i + ":\t" + imu_mpu.getOffsets()[i][0]
-                                          + "\t" + imu_mpu.getOffsets()[i][1]
-                                          + "\t" + imu_mpu.getOffsets()[i][2]);
-        }
-
-        // Start data processing
-        imu_lsm.start();
-        imu_mpu.start();
-       
-        long start_time = System.currentTimeMillis();
+        
+        
+        
+        
+        
+        /*long start_time = System.currentTimeMillis();
 
         while (imu_mpu.getSensorHeadings()[0][2] > -3.14 && imu_mpu.getSensorHeadings()[0][2] < 3.14) {
-            //for (int i = 0; i < imu_lsm.getNumSensors(); i++) {
-            //    System.out.println("LSM" + i + ":\t" + imu_lsm.getSensorHeadings()[i][2]);
-            //}
             //for (int i = 0; i < imu_mpu.getNumSensors(); i++) {
             //    System.out.println("MPU" + i + ":\t" + imu_mpu.getSensorHeadings()[i][2]);
             //}
             System.out.println("MPU0:\t" + imu_mpu.getSensorHeadings()[0][2]);
-            System.out.println("LSM1:\t" + imu_lsm.getSensorHeadings()[1][2]);
-            System.out.println("Fused:\t" + imu_mpu.getFusedHeadings()[2]);
+            System.out.println("Average:\t" + imu_mpu.getAverageHeadings()[2]);
             try {
                 Thread.sleep(200);
             } 
@@ -53,8 +126,8 @@ public class Main
                            " seconds for mpu random walk to exceed Pi radians");
 
         // Stop other threads
-        imu_lsm.exit();
         imu_mpu.exit();
-        RAIGDriver.getSingleton().close();
+        RAIGDriver.getSingleton().close();*/
     }
+    
 }
