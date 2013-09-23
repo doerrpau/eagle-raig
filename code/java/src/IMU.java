@@ -25,10 +25,11 @@ public class IMU extends Thread
     // Power Spectral Density values
     private double waNoiseSq[] = new double[NUM_AXES];
     private double wa_psd_total_time = 0.0;
-    // Calculated rate of each axis (rad/sec)
     private double waHead[] = new double[NUM_AXES];
+    private double waHead2[] = new double[NUM_AXES];
     // Sensor weights
     private double waK[][];
+    private double waK2[][];
 
 
     // This class calculates and stores data for a single sensor
@@ -67,9 +68,8 @@ public class IMU extends Thread
         private double accel[] = new double[NUM_AXES];
 
         // Temperature Data
+        private double start_temp = 0.0;
         private double temp = 0.0;
-        // Temperature offset constants
-        private double tOff[] = new double[NUM_AXES];
         // Temperature sensitivity constants
         private double tSen[] = new double[NUM_AXES];
 
@@ -78,12 +78,11 @@ public class IMU extends Thread
             kRate = kr;
         }
 
-        public IMUData(double kr[], double ka[], double oa[], double to[], double ts[])
+        public IMUData(double kr[], double ka[], double oa[], double ts[])
         {
             kRate = kr;
             kAccel = ka;
             oAccel = oa;
-            tOff = to;
             tSen = ts;
         }
 
@@ -97,6 +96,7 @@ public class IMU extends Thread
                 oRate[i] += time_diff*samp.rate[i];
             }
             calib_total_time += time_diff;
+            start_temp = samp.temp;
         }
         public void add_samp(RAIGDriver.IMUSample samp, double time_diff)
         {
@@ -107,8 +107,8 @@ public class IMU extends Thread
 
             for (int i = 0; i < NUM_AXES; i++) {
                 // Update gyroscope heading
-                //rate[i] = (samp.rate[i] - getOffset()[i])*kRate[i] + temp*tSen[i];
-                rate[i] = (samp.rate[i] - tOff[i] - temp*tSen[i])*kRate[i];
+                rate[i] = (samp.rate[i] - getOffset()[i] - (samp.temp - start_temp)*tSen[i])*kRate[i];
+                //rate[i] = (samp.rate[i] - tOff[i] - temp*tSen[i])*kRate[i];
                 delta[i] = time_diff*rate[i];
                 head[i] += delta[i];
                 // Update acceleration
@@ -126,7 +126,7 @@ public class IMU extends Thread
                 time_diff = 0.0;
             }
             for (int i = 0; i < NUM_AXES; i++) {
-                noise[i] = (samp.rate[i] - getOffset()[i])*kRate[i];
+                noise[i] = (samp.rate[i] - getOffset()[i] - (samp.temp - start_temp)*tSen[i])*kRate[i];
 
                 noiseSq[i] += time_diff*Math.pow(noise[i],2.0);
             }
@@ -141,7 +141,7 @@ public class IMU extends Thread
             } else {
                 double result[] = new double[NUM_AXES];
                 for (int i = 0; i < NUM_AXES; i++) {
-                    result[i] = oRate[i]/calib_total_time + temp*tOff[i];
+                    result[i] = oRate[i]/calib_total_time;
                 }
                 return result;
             }
@@ -293,7 +293,7 @@ public class IMU extends Thread
                 }
 
                 // Create IMUData with constants
-                imu_data[i] = new IMUData(kr, ka, oa, to, ts);
+                imu_data[i] = new IMUData(kr, ka, oa, ts);
             }
         } catch (IOException ex) {
             ex.printStackTrace();
@@ -304,9 +304,11 @@ public class IMU extends Thread
         prev_samp_time = new long[num_sensors];
         // Initialize weighted average weights
         waK = new double[num_sensors][NUM_AXES];
+        waK2 = new double[num_sensors][NUM_AXES];
         for (int i = 0; i < num_sensors; i++) {
             for (int n = 0; n < NUM_AXES; n++) {
                 waK[i][n] = 1.0/num_sensors;
+                waK2[i][n] = 1.0/num_sensors;
             }
         }
         calibrated = false;
@@ -428,6 +430,7 @@ public class IMU extends Thread
                             for (int n = 0; n < NUM_AXES; n++) {
                                 aHead[n] += imu_data[i].getDelta()[n]/active_sensors;
                                 waHead[n] += waK[i][n]*imu_data[i].getDelta()[n];
+                                waHead2[n] += waK2[i][n]*imu_data[i].getDelta()[n];
                             }
 
           
@@ -436,28 +439,34 @@ public class IMU extends Thread
                     }
                     // Recalculate and normalize weights
                     double delta_sum[] = new double[NUM_AXES];
+                    double delta_sum2[] = new double[NUM_AXES];
                     for (int k = 0; k < active_sensors; k++) {
                         for (int n = 0; n < NUM_AXES; n++) {
                             delta_sum[n] += Math.abs(aHead[n] - imu_data[k].getHeading()[n]);
+                            delta_sum2[n] += Math.abs(waHead2[n] - imu_data[k].getHeading()[n]);
                         }
                     }
                     for (int k = 0; k < active_sensors; k++) {
                         for (int n = 0; n < NUM_AXES; n++) {
                             waK[k][n] = delta_sum[n]/(Math.abs(aHead[n] - imu_data[k].getHeading()[n]));
+                            waK2[k][n] = delta_sum2[n]/(Math.abs(waHead2[n] - imu_data[k].getHeading()[n]));
                         }
                     }
                     double weight_sum[] = new double[NUM_AXES];
+                    double weight_sum2[] = new double[NUM_AXES];
                     for (int k = 0; k < active_sensors; k++) {
                         for (int n = 0; n < NUM_AXES; n++) {
                             weight_sum[n] += waK[k][n];
+                            weight_sum2[n] += waK2[k][n];
                         }
                     }
                     for (int k = 0; k < active_sensors; k++) {
                         for (int n = 0; n < NUM_AXES; n++) {
                             waK[k][n] /= weight_sum[n];
+                            waK2[k][n] /= weight_sum2[n];
                         }
                         // Debug weights
-                        //System.out.println("Sensor" + k + ": " + waK[k][2]);
+                        //System.out.println("Sensor" + k + ": " + waK2[k][2]);
                     }
                 }
                 data_stream.remove();
@@ -526,6 +535,16 @@ public class IMU extends Thread
         double[][] headings = new double[num_sensors][NUM_AXES];
         for (int i = 0; i < num_sensors; i++) {
             headings[i] = imu_data[i].getHeading();
+        }
+        return headings;
+    }
+    
+    // Return an array of XYZ rates for all sensors
+    public double[][] getSensorRates()
+    {
+        double[][] headings = new double[num_sensors][NUM_AXES];
+        for (int i = 0; i < num_sensors; i++) {
+            headings[i] = imu_data[i].getRate();
         }
         return headings;
     } 
@@ -630,6 +649,16 @@ public class IMU extends Thread
         return headings;
     }
 
+    // Return an array of weighted average XYZ headings
+    // Iteratively favors previous weights
+    public double[] getWAverage2Headings()
+    {
+        double[] headings = new double[NUM_AXES];
+        for (int i = 0; i < NUM_AXES; i++) {
+            headings[i] = waHead2[i];
+        }
+        return headings;
+    }
     //
     //
     // Miscellaneous utility methods

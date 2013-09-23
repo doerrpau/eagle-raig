@@ -20,31 +20,38 @@ public class Main
 
     volatile static boolean running = false;
 
+    static long time_started = 0;
+
     public Main() throws IOException {
     
          // Set up GUI
-        JFrame jf = new JFrame("RAIG Control Panel");
+        JFrame jf = new JFrame("RAIG Control Panel (Z Axis)");
         jf.setLayout(null);
         ParameterGUIListener pgl = new ParameterGUIListener();
        
         // Add elements
-        pg_controls.addButtons("reset", "Reset", "start", "Start");
+        pg_controls.addButtons("reset", "Reset", "start", "Start", "psd", "PSD");
         pg_controls.addInt("time","Seconds", 0);
         for (int i = 0; i < imu_mpu.getNumSensors(); i++) {
             pg_gyros.addDouble("mpu" + i, "Z Axis MPU6050-" + i, 0.0);
         }
+        for (int i = 0; i < imu_mpu.getNumSensors(); i++) {
+            pg_gyros.addDouble("mpu_psd" + i, "PSD Z Axis MPU6050-" + i, 0.0);
+        }
 
         pg_algos.addDouble("average", "Average of Gyros", 0.0);
+        pg_algos.addDouble("average_psd", "PSD of Averaged Signal", 0.0);
         pg_algos.addDouble("best", "Best Single Gyro", 0.0);
         pg_algos.addDouble("wa", "Weighted Average", 0.0);
+        pg_algos.addDouble("wa2", "Weighted Average 2", 0.0);
         
         jf.add(pg_controls);
         pg_controls.setBounds(0,400,900,150);
         pg_controls.addListener(pgl);
         jf.add(pg_gyros);
-        pg_gyros.setBounds(0,0,200,400);
+        pg_gyros.setBounds(0,0,350,400);
         jf.add(pg_algos);
-        pg_algos.setBounds(500,0,200,400);
+        pg_algos.setBounds(500,0,350,400);
 
         // Show GUI
         jf.setSize(1000, 550);
@@ -70,8 +77,15 @@ public class Main
                     // Calibrate and start IMU
                     imu_mpu.calibrate(1000);
                     imu_mpu.start();
+                    time_started = System.currentTimeMillis();
                     running = true;
                 }
+            } else if (name == "psd") {
+                imu_mpu.calculatePSD(1000);
+                for (int i = 0; i < imu_mpu.getNumSensors(); i++) {
+                    pg_gyros.sd("mpu_psd" + i, IMU.toDegrees(IMU.toRRW(imu_mpu.getPSDs()[i][2])));
+                }
+                pg_algos.sd("average_psd", IMU.toDegrees(IMU.toRRW(imu_mpu.getAveragePSDs()[2])));
             }
         }
     }
@@ -88,6 +102,9 @@ public class Main
                 pg_algos.sd("average", imu_mpu.getAverageHeadings()[2]);
                 pg_algos.sd("best", imu_mpu.getBestHeadings()[2]);
                 pg_algos.sd("wa", imu_mpu.getWAverageHeadings()[2]);
+                pg_algos.sd("wa2", imu_mpu.getWAverage2Headings()[2]);
+                
+                pg_controls.si("time", (int)(System.currentTimeMillis() - time_started)/1000);
                 
             } else {
                 for (int i = 0; i < imu_mpu.getNumSensors(); i++) {
@@ -96,6 +113,9 @@ public class Main
                 pg_algos.sd("average", 0.0);
                 pg_algos.sd("best", 0.0);
                 pg_algos.sd("wa", 0.0);
+                pg_algos.sd("wa2", 0.0);
+                
+                pg_algos.si("time", 0);
             }
             try {
                 Thread.sleep(200);
